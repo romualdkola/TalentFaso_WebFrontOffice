@@ -1,5 +1,5 @@
 import { apiRequest } from "./api";
-import { JobsResponse, JobsRequestParams, JobOffer } from "@/types/api";
+import {JobsResponse, JobsRequestParams, JobOffer, SkillType} from "@/types/api";
 import { Job } from "@/types/job";
 
 export function mapJobOfferToJob(offer: JobOffer): Job {
@@ -111,4 +111,98 @@ export function searchJobsFromList(jobs: Job[], query: string): Job[] {
       job.location.toLowerCase().includes(lowerQuery) ||
       job.description.toLowerCase().includes(lowerQuery)
   );
+}
+
+/**
+ * Récupère la liste des types de compétences / secteurs d'activité actifs
+ */
+export async function fetchActiveSkillTypes(): Promise<SkillType[]> {
+  const response = await apiRequest("/admin/skill-types/active", {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    throw new Error("Erreur lors de la récupération des secteurs d'activité");
+  }
+
+  return response.json();
+}
+
+/**
+ * Récupère les statistiques globales pour la page d'accueil
+ */
+export async function fetchDashboardStats(): Promise<any> {
+  // Si elle requiert d'être admin, change l'URL pour une route publique (ex: /mobile/stats)
+  const response = await apiRequest("/admin/stats/dashboard", {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    throw new Error("Erreur lors de la récupération des statistiques");
+  }
+
+  return response.json();
+}
+
+/**
+ * Récupère les offres filtrées par un skillType (secteur d'activité) spécifique
+ */
+export async function fetchJobsBySkillType(
+    skillTypeUuid: string,
+    params: { page?: number; size?: number } = {}
+): Promise<JobsResponse> {
+  const { page = 0, size = 20 } = params;
+
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+    sort: "createdAt,desc", // Tri par défaut
+  });
+
+  const response = await apiRequest(`/mobile/offers/by-skill/${skillTypeUuid}?${queryParams.toString()}`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    throw new Error("Erreur lors de la récupération des offres de ce secteur");
+  }
+
+  return response.json();
+}
+
+/**
+ * Soumet une nouvelle offre d'emploi au serveur
+ */
+export async function createJobOffer(offerData: {
+  title: string;
+  description: string;
+  requirements: string;
+  jobType: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP";
+  location: string;
+  city: string;
+  country: string;
+  salaryMin: number;
+  salaryMax: number;
+  salaryCurrency: string;
+  experienceRequired: number;
+  educationLevel: string;
+  skillsRequired: string;
+  skillTypeUuids: string[];
+  applicationDeadline: string | null;
+  startDate: string | null;
+  remoteAllowed: boolean;
+  isUrgent: boolean;
+  recruiterUuid: string;
+}): Promise<any> {
+  const response = await apiRequest("/mobile/offers", {
+    method: "POST",
+    body: JSON.stringify(offerData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Erreur lors de la création de l'offre");
+  }
+
+  return response.json();
 }

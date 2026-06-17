@@ -1,5 +1,5 @@
 export const getApiBaseUrl = (): string => {
-  return process.env.NEXT_PUBLIC_API_URL || "";
+  return process.env.NEXT_PUBLIC_API_URL || 'https://api.grapeit.tech/api/v1';
 };
 
 export const getApiUrl = (endpoint: string): string => {

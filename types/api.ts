@@ -64,3 +64,14 @@ export interface JobsRequestParams {
   size?: number;
   sort?: string[];
 }
+
+export interface SkillType {
+  id: number;
+  uuid: string;
+  name: string;
+  description: string;
+  iconUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
