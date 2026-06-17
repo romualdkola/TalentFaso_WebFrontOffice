@@ -101,7 +101,7 @@ export default function Home() {
                   {/* Offres d'emploi */}
                   <div>
                     <p className="text-3xl md:text-4xl font-extrabold text-primary">
-                      {stats.summary?.totalJobOffers?.toLocaleString() || 0}
+                      {stats.totalJobOffers?.toLocaleString() || 0}
                     </p>
                     <p className="text-sm text-gray-500 font-medium mt-1">Offres d'emploi</p>
                   </div>
@@ -109,7 +109,7 @@ export default function Home() {
                   {/* Candidats */}
                   <div>
                     <p className="text-3xl md:text-4xl font-extrabold text-purple-600">
-                      {stats.summary?.totalCandidates?.toLocaleString() || 0}
+                      {stats.totalCandidates?.toLocaleString() || 0}
                     </p>
                     <p className="text-sm text-gray-500 font-medium mt-1">Candidats inscrits</p>
                   </div>
@@ -117,7 +117,7 @@ export default function Home() {
                   {/* Entreprises */}
                   <div>
                     <p className="text-3xl md:text-4xl font-extrabold text-green-600">
-                      {stats.summary?.partnerCompanies?.toLocaleString() || 0}
+                      {stats.partnerCompanies?.toLocaleString() || 0}
                     </p>
                     <p className="text-sm text-gray-500 font-medium mt-1">Entreprises partenaires</p>
                   </div>
@@ -125,7 +125,7 @@ export default function Home() {
                   {/* Candidatures Total */}
                   <div>
                     <p className="text-3xl md:text-4xl font-extrabold text-amber-500">
-                      {stats.general?.totalApplications?.toLocaleString() || 0}
+                      {stats.totalApplications?.toLocaleString() || 0}
                     </p>
                     <p className="text-sm text-gray-500 font-medium mt-1">Candidatures envoyées</p>
                   </div>

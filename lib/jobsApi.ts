@@ -132,8 +132,7 @@ export async function fetchActiveSkillTypes(): Promise<SkillType[]> {
  * Récupère les statistiques globales pour la page d'accueil
  */
 export async function fetchDashboardStats(): Promise<any> {
-  // Si elle requiert d'être admin, change l'URL pour une route publique (ex: /mobile/stats)
-  const response = await apiRequest("/admin/stats/dashboard", {
+  const response = await apiRequest("/public/stats/dashboard", {
     method: "GET",
   });
 

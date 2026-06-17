@@ -107,7 +107,7 @@ export default function NewJobPage() {
 
   return (
       <div className="container mx-auto px-4 py-8 max-w-3xl">
-        <h1 className="text-4xl font-bold mb-8 text-gray-900">Publier une nouvelle offre</h1>
+        <h1 className="text-4xl font-bold mb-8 text-900">Publier une nouvelle offre</h1>
 
         {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
