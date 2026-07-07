@@ -49,11 +49,13 @@ library.add(
 );
 import JobCard from "@/components/JobCard";
 import JobCardSkeleton from "@/components/JobCardSkeleton";
+import JobDetail from "@/components/JobDetail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
   fetchActiveSkillTypes,
   fetchDashboardStats,
@@ -112,6 +114,8 @@ export default function Home() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
 
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+
   useEffect(() => {
     const loadHomeData = async () => {
       setLoading(true);
@@ -149,7 +153,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* ── HERO ── */}
-      <section className="bg-gradient-to-br from-primary via-primary/90 to-[#3d0010] text-white pt-16 pb-24 relative overflow-hidden">
+      <section className="bg-gradient-to-br from-primary via-primary/90 to-[#3d0010] text-white pt-10 pb-20 sm:pt-16 sm:pb-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEuNSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA4KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30" />
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
@@ -157,10 +161,10 @@ export default function Home() {
               <FontAwesomeIcon icon={faFlag} className="size-3" />
               N°1 de l&apos;emploi au Burkina Faso
             </Badge>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 font-heading leading-tight tracking-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 font-heading leading-tight tracking-tight">
               Trouvez votre prochain emploi
             </h1>
-            <p className="text-white/80 text-lg mb-10">
+            <p className="text-white/80 text-base sm:text-lg mb-8 sm:mb-10">
               Des milliers d&apos;offres vérifiées. Postulez en quelques clics.
             </p>
 
@@ -289,23 +293,9 @@ export default function Home() {
         <div className="marquee-wrapper">
           <div className="marquee-track">
             {[
-              { name: "Orange BF",       icon: faBullhorn,     color: "text-orange-500", bg: "bg-orange-50"  },
-              { name: "Moov Africa",     icon: faLayerGroup,   color: "text-blue-500",   bg: "bg-blue-50"    },
-              { name: "Coris Bank",      icon: faCoins,        color: "text-emerald-600",bg: "bg-emerald-50" },
-              { name: "Sonabhy",         icon: faGears,        color: "text-slate-600",  bg: "bg-slate-100"  },
-              { name: "Burkina Startup", icon: faLaptopCode,   color: "text-violet-600", bg: "bg-violet-50"  },
-              { name: "BSIC",            icon: faChartBar,     color: "text-sky-600",    bg: "bg-sky-50"     },
-              { name: "ONEF",            icon: faUsers,        color: "text-primary",    bg: "bg-primary/10" },
-              { name: "FAPE",            icon: faBriefcase,    color: "text-amber-600",  bg: "bg-amber-50"   },
+              { name: "GrapeIT",       icon: faBullhorn,     color: "text-orange-500", bg: "bg-orange-50"  },
               /* duplicate for seamless loop */
-              { name: "Orange BF",       icon: faBullhorn,     color: "text-orange-500", bg: "bg-orange-50"  },
-              { name: "Moov Africa",     icon: faLayerGroup,   color: "text-blue-500",   bg: "bg-blue-50"    },
-              { name: "Coris Bank",      icon: faCoins,        color: "text-emerald-600",bg: "bg-emerald-50" },
-              { name: "Sonabhy",         icon: faGears,        color: "text-slate-600",  bg: "bg-slate-100"  },
-              { name: "Burkina Startup", icon: faLaptopCode,   color: "text-violet-600", bg: "bg-violet-50"  },
-              { name: "BSIC",            icon: faChartBar,     color: "text-sky-600",    bg: "bg-sky-50"     },
-              { name: "ONEF",            icon: faUsers,        color: "text-primary",    bg: "bg-primary/10" },
-              { name: "FAPE",            icon: faBriefcase,    color: "text-amber-600",  bg: "bg-amber-50"   },
+              { name: "GrapeIT",       icon: faBullhorn,     color: "text-orange-500", bg: "bg-orange-50"  },
             ].map((partner, i) => (
               <div
                 key={i}
@@ -388,15 +378,20 @@ export default function Home() {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <JobCardSkeleton key={i} />
               ))}
             </div>
           ) : featuredJobs.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {featuredJobs.map((job) => (
-                <JobCard key={job.id} job={job} />
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  selected={selectedJob?.id === job.id}
+                  onClick={() => setSelectedJob(job)}
+                />
               ))}
             </div>
           ) : (
@@ -474,6 +469,21 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ── JOB DETAIL DRAWER ── */}
+      <Sheet open={!!selectedJob} onOpenChange={(open) => !open && setSelectedJob(null)}>
+        <SheetContent
+          side="right"
+          className="w-full p-0 sm:max-w-2xl [&>button]:z-20"
+        >
+          {selectedJob && (
+            <>
+              <SheetTitle className="sr-only">{selectedJob.title}</SheetTitle>
+              <JobDetail job={selectedJob} />
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -135,36 +135,44 @@ function JobsContent() {
     <div className="flex flex-col h-[calc(100vh-5rem)]">
       {/* ── TOP SEARCH BAR ── */}
       <div className="border-b border-border bg-card px-4 py-3 shrink-0">
-        <form onSubmit={handleSearch} className="flex gap-2 items-center max-w-4xl mx-auto">
-          <div className="flex items-center flex-1 border border-input rounded-lg px-3 gap-2 bg-background focus-within:ring-2 focus-within:ring-ring">
-            <Search className="size-4 text-muted-foreground shrink-0" />
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Poste, compétence, entreprise"
-              className="flex-1 text-sm bg-transparent outline-none py-2 placeholder:text-muted-foreground"
-            />
+        <form
+          onSubmit={handleSearch}
+          className="flex flex-col sm:flex-row gap-2 sm:items-center max-w-4xl mx-auto"
+        >
+          <div className="flex flex-1 gap-2 min-w-0">
+            <div className="flex items-center flex-1 min-w-0 border border-input rounded-lg px-3 gap-2 bg-background focus-within:ring-2 focus-within:ring-ring">
+              <Search className="size-4 text-muted-foreground shrink-0" />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Poste, compétence…"
+                className="flex-1 min-w-0 text-sm bg-transparent outline-none py-2 placeholder:text-muted-foreground"
+              />
+            </div>
+            <div className="flex items-center flex-1 min-w-0 border border-input rounded-lg px-3 gap-2 bg-background focus-within:ring-2 focus-within:ring-ring">
+              <MapPin className="size-4 text-muted-foreground shrink-0" />
+              <input
+                value={searchLocation}
+                onChange={(e) => setSearchLocation(e.target.value)}
+                placeholder="Ville"
+                className="flex-1 min-w-0 text-sm bg-transparent outline-none py-2 placeholder:text-muted-foreground"
+              />
+            </div>
           </div>
-          <div className="flex items-center flex-1 border border-input rounded-lg px-3 gap-2 bg-background focus-within:ring-2 focus-within:ring-ring">
-            <MapPin className="size-4 text-muted-foreground shrink-0" />
-            <input
-              value={searchLocation}
-              onChange={(e) => setSearchLocation(e.target.value)}
-              placeholder="Ville ou région"
-              className="flex-1 text-sm bg-transparent outline-none py-2 placeholder:text-muted-foreground"
-            />
+          <div className="flex gap-2 shrink-0">
+            <Button type="submit" className="flex-1 sm:flex-none">Rechercher</Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => setShowFilters(!showFilters)}
+              className={cn("shrink-0", showFilters && "border-primary text-primary")}
+              aria-label="Filtres"
+              aria-expanded={showFilters}
+            >
+              <SlidersHorizontal className="size-4" />
+            </Button>
           </div>
-          <Button type="submit" className="shrink-0">Rechercher</Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => setShowFilters(!showFilters)}
-            className={cn("shrink-0", showFilters && "border-primary text-primary")}
-            aria-label="Filtres"
-          >
-            <SlidersHorizontal className="size-4" />
-          </Button>
         </form>
 
         {/* Filter bar */}

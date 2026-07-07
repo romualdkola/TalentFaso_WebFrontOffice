@@ -101,7 +101,7 @@ export default function JobDetail({
   return (
     <div className={cn("flex flex-col h-full", standalone && "min-h-screen")}>
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-card border-b border-border px-6 py-4">
+      <div className="sticky top-0 z-10 bg-card border-b border-border px-4 sm:px-6 py-4">
         {showBackButton && (
           <button
             onClick={onBack}
@@ -201,7 +201,7 @@ export default function JobDetail({
       </div>
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-8">
         {/* Application form */}
         {showForm && (
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
