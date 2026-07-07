@@ -1,21 +1,65 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-// Importation de useSearchParams pour lire l'URL (?skillType=...)
+import { Suspense, useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { Search, MapPin, SlidersHorizontal, X, Briefcase, ChevronLeft, ChevronRight } from "lucide-react";
 import JobCard from "@/components/JobCard";
+import JobCardSkeleton from "@/components/JobCardSkeleton";
+import JobDetail from "@/components/JobDetail";
 import { Job } from "@/types/job";
-import { fetchJobs, fetchJobsBySkillType, mapJobOfferToJob, searchJobsFromList } from "@/lib/jobsApi";
+import {
+  fetchJobs,
+  fetchJobsBySkillType,
+  mapJobOfferToJob,
+  searchJobsFromList,
+} from "@/lib/jobsApi";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
-export default function JobsPage() {
+const JOB_TYPES = [
+  { value: "all", label: "Tous" },
+  { value: "full-time", label: "Temps plein" },
+  { value: "part-time", label: "Temps partiel" },
+  { value: "contract", label: "Contrat" },
+  { value: "internship", label: "Stage" },
+];
+
+const DATE_FILTERS = [
+  { value: "all", label: "Toutes dates" },
+  { value: "today", label: "Aujourd'hui" },
+  { value: "week", label: "Cette semaine" },
+  { value: "month", label: "Ce mois" },
+];
+
+function applyDateFilter(jobs: Job[], filter: string): Job[] {
+  if (filter === "all") return jobs;
+  const now = Date.now();
+  const cutoff: Record<string, number> = {
+    today: 86400000,
+    week: 604800000,
+    month: 2592000000,
+  };
+  const ms = cutoff[filter] ?? Infinity;
+  return jobs.filter((j) => now - new Date(j.postedDate).getTime() <= ms);
+}
+
+function JobsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Récupération du paramètre ?skillType=... dans l'URL
+  const initialQ = searchParams.get("q") ?? "";
+  const initialLocation = searchParams.get("location") ?? "";
   const skillTypeParam = searchParams.get("skillType");
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<Job["type"] | "all">("all");
+  const [searchQuery, setSearchQuery] = useState(initialQ);
+  const [searchLocation, setSearchLocation] = useState(initialLocation);
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [remoteOnly, setRemoteOnly] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,195 +67,309 @@ export default function JobsPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  // On relance le chargement si la page change OU si le secteur dans l'URL change
-  useEffect(() => {
-    loadJobs();
-  }, [currentPage, skillTypeParam]);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [showDetailMobile, setShowDetailMobile] = useState(false);
 
-  const loadJobs = async () => {
+  const loadJobs = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
-      let response;
-
-      // Si un skillType est présent dans l'URL, on appelle l'endpoint ciblé
-      if (skillTypeParam) {
-        response = await fetchJobsBySkillType(skillTypeParam, {
-          page: currentPage,
-          size: 20,
-        });
-      } else {
-        // Sinon, comportement classique : on prend toutes les offres
-        response = await fetchJobs({
-          page: currentPage,
-          size: 20,
-          sort: ["createdAt,desc"],
-        });
-      }
-
-      const mappedJobs = response.content.map(mapJobOfferToJob);
-      setJobs(mappedJobs);
+      const response = skillTypeParam
+        ? await fetchJobsBySkillType(skillTypeParam, { page: currentPage, size: 20 })
+        : await fetchJobs({ page: currentPage, size: 20, sort: ["createdAt,desc"] });
+      const mapped = response.content.map(mapJobOfferToJob);
+      setJobs(mapped);
       setTotalPages(response.totalPages);
       setTotalElements(response.totalElements);
+      if (mapped.length > 0 && !selectedJob) setSelectedJob(mapped[0]);
     } catch (err) {
-      setError(
-          err instanceof Error
-              ? err.message
-              : "Erreur lors du chargement des offres d'emploi"
-      );
+      setError(err instanceof Error ? err.message : "Erreur de chargement");
     } finally {
       setLoading(false);
     }
+  }, [currentPage, skillTypeParam]);
+
+  useEffect(() => { loadJobs(); }, [loadJobs]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(0);
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) params.set("q", searchQuery.trim());
+    if (searchLocation.trim()) params.set("location", searchLocation.trim());
+    if (skillTypeParam) params.set("skillType", skillTypeParam);
+    router.replace(`/jobs${params.toString() ? `?${params}` : ""}`);
   };
 
-  // Fonction pour réinitialiser complètement la recherche et les filtres d'URL
-  const handleClearFilters = () => {
+  const handleClearAll = () => {
     setSearchQuery("");
+    setSearchLocation("");
     setTypeFilter("all");
-    if (skillTypeParam) {
-      // Nettoie l'URL en retirant le ?skillType=... sans recharger la page
-      router.push("/jobs");
-    }
+    setDateFilter("all");
+    setRemoteOnly(false);
+    setCurrentPage(0);
+    router.push("/jobs");
   };
 
   const filteredJobs = useMemo(() => {
-    let filtered = jobs;
-
-    if (searchQuery) {
-      filtered = searchJobsFromList(filtered, searchQuery);
+    let result = jobs;
+    if (searchQuery || initialQ) {
+      result = searchJobsFromList(result, searchQuery || initialQ);
     }
-
-    if (typeFilter !== "all") {
-      filtered = filtered.filter((job) => job.type === typeFilter);
+    if (searchLocation || initialLocation) {
+      const loc = (searchLocation || initialLocation).toLowerCase();
+      result = result.filter(
+        (j) => j.location.toLowerCase().includes(loc) || (j.city ?? "").toLowerCase().includes(loc)
+      );
     }
+    if (typeFilter !== "all") result = result.filter((j) => j.type === typeFilter);
+    if (remoteOnly) result = result.filter((j) => j.remoteAllowed);
+    result = applyDateFilter(result, dateFilter);
+    return result;
+  }, [jobs, searchQuery, searchLocation, typeFilter, dateFilter, remoteOnly, initialQ, initialLocation]);
 
-    return filtered;
-  }, [searchQuery, typeFilter, jobs]);
-
-  // --- RESTE DU COMPOSANT (AFFICHEUR JSX) ---
-  if (loading && jobs.length === 0) {
-    return (
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-4xl font-bold mb-8">Offres d'emploi</h1>
-          <div className="text-center py-12">
-            <p className="text-gray-600">Chargement des offres d'emploi...</p>
-          </div>
-        </div>
-    );
-  }
+  const hasActiveFilters =
+    typeFilter !== "all" || dateFilter !== "all" || remoteOnly || !!skillTypeParam;
 
   return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-8">
-          {skillTypeParam ? "Offres par secteur" : "Toutes les offres d'emploi"}
-        </h1>
-
-        {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-8">
-              {error}
-            </div>
-        )}
-
-        {/* Bannière informative si filtre par secteur actif */}
-        {skillTypeParam && (
-            <div className="bg-purple-50 border border-purple-200 text-purple-900 px-4 py-3 rounded-lg mb-6 flex justify-between items-center">
-              <p className="text-sm font-medium">
-                Filtre par secteur d'activité activé.
-              </p>
-              <button
-                  onClick={handleClearFilters}
-                  className="text-xs bg-white text-purple-700 font-semibold px-3 py-1.5 rounded-md border border-purple-200 hover:bg-purple-100 transition"
-              >
-                Afficher tous les secteurs
-              </button>
-            </div>
-        )}
-
-        {/* Search and Filter Section */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-                Rechercher des offres
-              </label>
-              <input
-                  type="text"
-                  id="search"
-                  placeholder="Rechercher par titre, entreprise, lieu..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
-                Type d'emploi
-              </label>
-              <select
-                  id="type"
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value as Job["type"] | "all")}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-              >
-                <option value="all">Tous types</option>
-                <option value="full-time">Temps plein</option>
-                <option value="part-time">Temps partiel</option>
-                <option value="contract">Contrat</option>
-                <option value="internship">Stage</option>
-              </select>
-            </div>
+    <div className="flex flex-col h-[calc(100vh-5rem)]">
+      {/* ── TOP SEARCH BAR ── */}
+      <div className="border-b border-border bg-card px-4 py-3 shrink-0">
+        <form onSubmit={handleSearch} className="flex gap-2 items-center max-w-4xl mx-auto">
+          <div className="flex items-center flex-1 border border-input rounded-lg px-3 gap-2 bg-background focus-within:ring-2 focus-within:ring-ring">
+            <Search className="size-4 text-muted-foreground shrink-0" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Poste, compétence, entreprise"
+              className="flex-1 text-sm bg-transparent outline-none py-2 placeholder:text-muted-foreground"
+            />
           </div>
+          <div className="flex items-center flex-1 border border-input rounded-lg px-3 gap-2 bg-background focus-within:ring-2 focus-within:ring-ring">
+            <MapPin className="size-4 text-muted-foreground shrink-0" />
+            <input
+              value={searchLocation}
+              onChange={(e) => setSearchLocation(e.target.value)}
+              placeholder="Ville ou région"
+              className="flex-1 text-sm bg-transparent outline-none py-2 placeholder:text-muted-foreground"
+            />
+          </div>
+          <Button type="submit" className="shrink-0">Rechercher</Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => setShowFilters(!showFilters)}
+            className={cn("shrink-0", showFilters && "border-primary text-primary")}
+            aria-label="Filtres"
+          >
+            <SlidersHorizontal className="size-4" />
+          </Button>
+        </form>
 
-          <p className="text-gray-600">
-            Affichage de {filteredJobs.length} sur {totalElements} offres
-          </p>
-        </div>
-
-        {/* Jobs Grid */}
-        {filteredJobs.length > 0 ? (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {filteredJobs.map((job) => (
-                    <JobCard key={job.id} job={job} />
-                ))}
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                  <div className="flex justify-center items-center gap-4 mt-8">
-                    <button
-                        onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
-                        disabled={currentPage === 0 || loading}
-                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                    >
-                      Précédent
-                    </button>
-                    <span className="text-gray-600">
-                Page {currentPage + 1} sur {totalPages}
-              </span>
-                    <button
-                        onClick={() => setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))}
-                        disabled={currentPage >= totalPages - 1 || loading}
-                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                    >
-                      Suivant
-                    </button>
-                  </div>
-              )}
-            </>
-        ) : (
-            <div className="text-center py-12 bg-white rounded-lg shadow-md">
-              <p className="text-gray-600 text-lg mb-4">Aucune offre ne correspond à vos critères.</p>
-              <button
-                  onClick={handleClearFilters}
-                  className="text-primary hover:text-primary/80 font-semibold"
-              >
-                Effacer les filtres
-              </button>
+        {/* Filter bar */}
+        {showFilters && (
+          <div className="mt-3 flex flex-wrap gap-3 items-center max-w-4xl mx-auto border-t border-border pt-3">
+            {/* Job type */}
+            <div className="flex gap-1.5 flex-wrap">
+              {JOB_TYPES.map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => setTypeFilter(t.value)}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                    typeFilter === t.value
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background border-border text-muted-foreground hover:border-primary hover:text-primary"
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
             </div>
+
+            <div className="w-px h-4 bg-border" />
+
+            {/* Date filter */}
+            <div className="flex gap-1.5 flex-wrap">
+              {DATE_FILTERS.map((d) => (
+                <button
+                  key={d.value}
+                  onClick={() => setDateFilter(d.value)}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                    dateFilter === d.value
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background border-border text-muted-foreground hover:border-primary hover:text-primary"
+                  )}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="w-px h-4 bg-border" />
+
+            {/* Remote toggle */}
+            <button
+              onClick={() => setRemoteOnly(!remoteOnly)}
+              className={cn(
+                "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                remoteOnly
+                  ? "bg-accent text-accent-foreground border-accent"
+                  : "bg-background border-border text-muted-foreground hover:border-accent hover:text-accent"
+              )}
+            >
+              📡 Télétravail
+            </button>
+
+            {hasActiveFilters && (
+              <button
+                onClick={handleClearAll}
+                className="ml-auto text-xs text-destructive hover:underline flex items-center gap-1"
+              >
+                <X className="size-3" /> Effacer les filtres
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Active filter chips */}
+        {(hasActiveFilters || skillTypeParam) && (
+          <div className="flex gap-2 mt-2 flex-wrap max-w-4xl mx-auto">
+            {skillTypeParam && (
+              <Badge variant="outline" className="gap-1 text-xs">
+                Secteur filtré
+                <button onClick={() => router.push("/jobs")}>
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            )}
+          </div>
         )}
       </div>
+
+      {/* ── MAIN SPLIT PANEL ── */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* Left: Job list */}
+        <div className={cn(
+          "flex flex-col border-r border-border bg-muted/20",
+          "w-full md:w-[380px] lg:w-[420px] shrink-0",
+          showDetailMobile ? "hidden md:flex" : "flex"
+        )}>
+          {/* Result count */}
+          <div className="px-4 py-2.5 border-b border-border bg-card shrink-0">
+            {loading ? (
+              <div className="h-4 w-40 bg-muted animate-pulse rounded" />
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">{filteredJobs.length}</span>
+                {" "}offre{filteredJobs.length !== 1 ? "s" : ""} sur{" "}
+                <span className="font-semibold text-foreground">{totalElements}</span> au total
+              </p>
+            )}
+          </div>
+
+          {/* Cards list */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            {error && (
+              <div className="text-destructive text-sm p-3 rounded-lg bg-destructive/10">
+                {error}
+              </div>
+            )}
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => <JobCardSkeleton key={i} />)
+            ) : filteredJobs.length > 0 ? (
+              filteredJobs.map((job) => (
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  selected={selectedJob?.id === job.id}
+                  onClick={() => {
+                    setSelectedJob(job);
+                    setShowDetailMobile(true);
+                  }}
+                />
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+                <Briefcase className="size-10 mb-3 opacity-30" />
+                <p className="font-medium">Aucune offre trouvée</p>
+                <button
+                  onClick={handleClearAll}
+                  className="text-xs text-primary mt-2 hover:underline"
+                >
+                  Effacer les filtres
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="border-t border-border bg-card px-4 py-3 flex items-center justify-between shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                disabled={currentPage === 0 || loading}
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Page {currentPage + 1} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={currentPage >= totalPages - 1 || loading}
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Job detail panel */}
+        <div className={cn(
+          "flex-1 bg-card overflow-y-auto",
+          showDetailMobile ? "flex flex-col" : "hidden md:flex md:flex-col"
+        )}>
+          {selectedJob ? (
+            <JobDetail
+              job={selectedJob}
+              showBackButton={showDetailMobile}
+              onBack={() => setShowDetailMobile(false)}
+            />
+          ) : !loading ? (
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+              <Briefcase className="size-12 opacity-20 mb-3" />
+              <p className="text-sm">Sélectionnez une offre pour voir les détails</p>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function JobsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-[calc(100vh-5rem)]">
+          <div className="w-full md:w-[380px] p-3 space-y-2 border-r border-border">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <JobCardSkeleton key={i} />
+            ))}
+          </div>
+          <div className="flex-1 hidden md:block" />
+        </div>
+      }
+    >
+      <JobsContent />
+    </Suspense>
   );
 }

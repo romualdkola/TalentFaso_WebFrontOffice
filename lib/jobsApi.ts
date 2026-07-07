@@ -1,5 +1,5 @@
-import { apiRequest } from "./api";
-import {JobsResponse, JobsRequestParams, JobOffer, SkillType} from "@/types/api";
+import { apiRequest, getApiUrl } from "./api";
+import {JobsResponse, JobsRequestParams, JobOffer, SkillType, DashboardStats} from "@/types/api";
 import { Job } from "@/types/job";
 
 export function mapJobOfferToJob(offer: JobOffer): Job {
@@ -35,13 +35,26 @@ export function mapJobOfferToJob(offer: JobOffer): Job {
     title: offer.title,
     company: offer.companyName || offer.recruiterName,
     location: location,
+    city: offer.city,
+    country: offer.country,
     type: jobTypeMap[offer.jobType] || "full-time",
     salary: salary,
+    salaryMin: offer.salaryMin > 0 ? offer.salaryMin : undefined,
+    salaryMax: offer.salaryMax > 0 ? offer.salaryMax : undefined,
+    salaryCurrency: offer.salaryCurrency,
     description: offer.description,
     requirements: requirements,
     postedDate: offer.publishedAt || offer.createdAt,
     deadline: offer.applicationDeadline,
+    startDate: offer.startDate,
     featured: offer.isFeatured,
+    isUrgent: offer.isUrgent,
+    remoteAllowed: offer.remoteAllowed,
+    educationLevel: offer.educationLevel,
+    experienceRequired: offer.experienceRequired > 0 ? offer.experienceRequired : undefined,
+    skillsRequired: offer.skillsRequired,
+    viewsCount: offer.viewsCount,
+    applicationsCount: offer.applicationsCount,
   };
 }
 
@@ -129,19 +142,46 @@ export async function fetchActiveSkillTypes(): Promise<SkillType[]> {
 }
 
 /**
- * Récupère les statistiques globales pour la page d'accueil
+ * Statistiques publiques de repli (route /mobile/offers accessible sans JWT).
  */
-export async function fetchDashboardStats(): Promise<any> {
-  // Si elle requiert d'être admin, change l'URL pour une route publique (ex: /mobile/stats)
+async function fetchPublicJobOfferCount(): Promise<number | null> {
+  try {
+    const response = await fetch(
+      getApiUrl("/mobile/offers?page=0&size=1&sort=createdAt,desc")
+    );
+    if (!response.ok) return null;
+    const data: JobsResponse = await response.json();
+    return data.totalElements ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Récupère les statistiques globales pour la page d'accueil.
+ * Route admin : GET /admin/stats/dashboard (JWT admin requis).
+ * Si 403, repli sur le nombre d'offres via /mobile/offers (public).
+ */
+export async function fetchDashboardStats(): Promise<DashboardStats | null> {
   const response = await apiRequest("/admin/stats/dashboard", {
     method: "GET",
   });
 
-  if (!response.ok) {
-    throw new Error("Erreur lors de la récupération des statistiques");
+  if (response.ok) {
+    return response.json();
   }
 
-  return response.json();
+  if (response.status === 403 || response.status === 401) {
+    const totalJobOffers = await fetchPublicJobOfferCount();
+    if (totalJobOffers !== null) {
+      return {
+        summary: { totalJobOffers },
+      };
+    }
+    return null;
+  }
+
+  throw new Error("Erreur lors de la récupération des statistiques");
 }
 
 /**
@@ -167,6 +207,77 @@ export async function fetchJobsBySkillType(
     throw new Error("Erreur lors de la récupération des offres de ce secteur");
   }
 
+  return response.json();
+}
+
+/* ─── Application (candidature) ─── */
+
+export interface ApplicationPayload {
+  jobOfferUuid: string;
+  coverLetter?: string;
+  resumeFile?: File;
+}
+
+export interface ApplicationRecord {
+  id: number;
+  uuid: string;
+  jobOfferUuid: string;
+  jobOfferTitle: string;
+  jobOfferLocation: string;
+  jobOfferCity: string;
+  jobOfferApplicationDeadline: string;
+  companyName: string;
+  recruiterName: string;
+  jobSeekerName: string;
+  jobSeekerEmail: string;
+  status: "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED";
+  coverLetterUrl: string | null;
+  resumeUrl: string | null;
+  message: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Soumet une candidature à une offre d'emploi (multipart/form-data).
+ * Requiert un JWT valide (job seeker connecté).
+ */
+export async function submitApplication(payload: ApplicationPayload): Promise<ApplicationRecord> {
+  const { getAuthToken, getApiUrl } = await import("./api");
+  const token = getAuthToken();
+  if (!token) throw new Error("AUTH_REQUIRED");
+
+  const form = new FormData();
+  form.append("jobOfferUuid", payload.jobOfferUuid);
+  if (payload.coverLetter) form.append("coverLetter", payload.coverLetter);
+  if (payload.resumeFile) form.append("resumeFile", payload.resumeFile);
+
+  const response = await fetch(getApiUrl("/mobile/applications"), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || "Erreur lors de la soumission de la candidature");
+  }
+
+  return response.json();
+}
+
+/**
+ * Récupère les candidatures du job seeker connecté.
+ */
+export async function fetchMyApplications(
+  params: { page?: number; size?: number } = {}
+): Promise<{ content: ApplicationRecord[]; totalElements: number; totalPages: number }> {
+  const { page = 0, size = 20 } = params;
+  const response = await apiRequest(
+    `/mobile/applications?page=${page}&size=${size}`,
+    { method: "GET" }
+  );
+  if (!response.ok) throw new Error("Erreur lors du chargement des candidatures");
   return response.json();
 }
 

@@ -2,18 +2,30 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Briefcase, CheckCircle2 } from "lucide-react";
 import { createJobOffer, fetchActiveSkillTypes } from "@/lib/jobsApi";
 import { SkillType } from "@/types/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 
 export default function NewJobPage() {
   const router = useRouter();
 
-  // États locaux obligatoires
   const [skillTypes, setSkillTypes] = useState<SkillType[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
-  // Payload aligné sur les besoins de ton API POST
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -21,22 +33,21 @@ export default function NewJobPage() {
     jobType: "FULL_TIME",
     location: "",
     city: "",
-    country: "Burkina Faso", // Valeur par défaut indicative
+    country: "Burkina Faso",
     salaryMin: "0",
     salaryMax: "0",
     salaryCurrency: "XOF",
     experienceRequired: "0",
     educationLevel: "",
     skillsRequired: "",
-    selectedSkillTypeUuid: "", // Lié au sélecteur de secteurs
+    selectedSkillTypeUuid: "",
     applicationDeadline: "",
     startDate: "",
     remoteAllowed: false,
     isUrgent: false,
-    recruiterUuid: "3fa85f64-5717-4562-b3fc-2c963f66afa6", // Remplacer par l'ID de l'utilisateur connecté en prod
+    recruiterUuid: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
   });
 
-  // Charger les secteurs d'activité au montage pour alimenter un menu déroulant
   useEffect(() => {
     const loadSecteurs = async () => {
       try {
@@ -53,17 +64,16 @@ export default function NewJobPage() {
   }, []);
 
   const handleChange = (
-      e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-
-    // Gestion spécifique pour les cases à cocher (checkboxes)
     if (type === "checkbox") {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData({ ...formData, [name]: checked });
     } else {
       setFormData({ ...formData, [name]: value });
     }
+    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,7 +81,6 @@ export default function NewJobPage() {
     setIsSubmitting(true);
     setError(null);
 
-    // Préparation et formatage propre du payload JSON
     const payload = {
       title: formData.title,
       description: formData.description,
@@ -96,8 +105,8 @@ export default function NewJobPage() {
 
     try {
       await createJobOffer(payload);
-      alert("L'offre d'emploi a été publiée avec succès !");
-      router.push("/jobs");
+      setSuccess(true);
+      setTimeout(() => router.push("/jobs"), 1200);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue lors de l'envoi.");
     } finally {
@@ -106,310 +115,322 @@ export default function NewJobPage() {
   };
 
   return (
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
-        <h1 className="text-4xl font-bold mb-8 text-gray-900">Publier une nouvelle offre</h1>
-
-        {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-              {error}
+    <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Briefcase className="size-5 text-primary" />
             </div>
-        )}
+            <div>
+              <CardTitle className="text-2xl font-bold">Publier une nouvelle offre</CardTitle>
+              <CardDescription>Renseignez les détails du poste à pourvoir</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-8 space-y-6">
+        <CardContent>
+          {success && (
+            <Alert className="mb-6 border-accent/30 bg-accent/10" role="status">
+              <CheckCircle2 className="size-4 text-accent" />
+              <AlertDescription className="text-foreground">
+                Offre publiée avec succès ! Redirection en cours…
+              </AlertDescription>
+            </Alert>
+          )}
 
-          {/* Titre */}
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-              Titre du poste *
-            </label>
-            <input
-                type="text"
+          {error && (
+            <Alert variant="destructive" className="mb-6" role="alert">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+            {/* Titre */}
+            <div className="space-y-1.5">
+              <label htmlFor="title" className="text-sm font-medium">
+                Titre du poste *
+              </label>
+              <Input
                 id="title"
                 name="title"
                 required
+                aria-required="true"
                 value={formData.title}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
                 placeholder="ex. : Développeur logiciel senior"
-            />
-          </div>
+              />
+            </div>
 
-          {/* Localisation combinée (Ville & Pays) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                Ville *
-              </label>
-              <input
-                  type="text"
+            {/* Ville & Pays */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label htmlFor="city" className="text-sm font-medium">Ville *</label>
+                <Input
                   id="city"
                   name="city"
                   required
+                  aria-required="true"
                   value={formData.city}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
                   placeholder="ex. : Ouagadougou"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">
-                Pays *
-              </label>
-              <input
-                  type="text"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="country" className="text-sm font-medium">Pays *</label>
+                <Input
                   id="country"
                   name="country"
                   required
+                  aria-required="true"
                   value={formData.country}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-              />
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Secteur d'activité dynamique & Type de contrat */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="selectedSkillTypeUuid" className="block text-sm font-medium text-gray-700 mb-2">
-                Secteur d'activité *
-              </label>
-              <select
+            {/* Secteur & Type de contrat */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label htmlFor="selectedSkillTypeUuid" className="text-sm font-medium">
+                  Secteur d&apos;activité *
+                </label>
+                <Select
                   id="selectedSkillTypeUuid"
                   name="selectedSkillTypeUuid"
                   required
+                  aria-required="true"
                   value={formData.selectedSkillTypeUuid}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-              >
-                {skillTypes.map((type) => (
+                >
+                  {skillTypes.map((type) => (
                     <option key={type.uuid} value={type.uuid}>
                       {type.name}
                     </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="jobType" className="block text-sm font-medium text-gray-700 mb-2">
-                Type d'emploi *
-              </label>
-              <select
+                  ))}
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="jobType" className="text-sm font-medium">Type d&apos;emploi *</label>
+                <Select
                   id="jobType"
                   name="jobType"
                   required
+                  aria-required="true"
                   value={formData.jobType}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-              >
-                <option value="FULL_TIME">Temps plein</option>
-                <option value="PART_TIME">Temps partiel</option>
-                <option value="CONTRACT">Contrat</option>
-                <option value="INTERNSHIP">Stage</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Salaire Min, Max et Devise */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="salaryMin" className="block text-sm font-medium text-gray-700 mb-2">
-                Salaire Minimum
-              </label>
-              <input
-                  type="number"
-                  id="salaryMin"
-                  name="salaryMin"
-                  value={formData.salaryMin}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-              />
+                >
+                  <option value="FULL_TIME">Temps plein</option>
+                  <option value="PART_TIME">Temps partiel</option>
+                  <option value="CONTRACT">Contrat</option>
+                  <option value="INTERNSHIP">Stage</option>
+                </Select>
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="salaryMax" className="block text-sm font-medium text-gray-700 mb-2">
-                Salaire Maximum
-              </label>
-              <input
-                  type="number"
-                  id="salaryMax"
-                  name="salaryMax"
-                  value={formData.salaryMax}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-              />
+            {/* Salaire (input group avec devise) */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Fourchette de salaire</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex rounded-lg shadow-sm">
+                  <Input
+                    id="salaryMin"
+                    name="salaryMin"
+                    type="number"
+                    min="0"
+                    aria-label="Salaire minimum"
+                    value={formData.salaryMin}
+                    onChange={handleChange}
+                    className="rounded-r-none"
+                    placeholder="Min"
+                  />
+                  <span className="inline-flex items-center rounded-r-lg border border-l-0 border-input bg-muted px-3 text-sm text-muted-foreground">
+                    min
+                  </span>
+                </div>
+                <div className="flex rounded-lg shadow-sm">
+                  <Input
+                    id="salaryMax"
+                    name="salaryMax"
+                    type="number"
+                    min="0"
+                    aria-label="Salaire maximum"
+                    value={formData.salaryMax}
+                    onChange={handleChange}
+                    className="rounded-r-none"
+                    placeholder="Max"
+                  />
+                  <span className="inline-flex items-center rounded-r-lg border border-l-0 border-input bg-muted px-3 text-sm text-muted-foreground">
+                    max
+                  </span>
+                </div>
+                <div className="space-y-0">
+                  <Select
+                    id="salaryCurrency"
+                    name="salaryCurrency"
+                    aria-label="Devise"
+                    value={formData.salaryCurrency}
+                    onChange={handleChange}
+                  >
+                    <option value="XOF">XOF (FCFA)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="USD">USD ($)</option>
+                  </Select>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="salaryCurrency" className="block text-sm font-medium text-gray-700 mb-2">
-                Devise
-              </label>
-              <input
-                  type="text"
-                  id="salaryCurrency"
-                  name="salaryCurrency"
-                  value={formData.salaryCurrency}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-              />
-            </div>
-          </div>
-
-          {/* Expérience, Niveau d'études, Compétences clés */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="experienceRequired" className="block text-sm font-medium text-gray-700 mb-2">
-                Expérience (ans)
-              </label>
-              <input
-                  type="number"
+            {/* Expérience, Études, Compétences */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <label htmlFor="experienceRequired" className="text-sm font-medium">
+                  Expérience (ans)
+                </label>
+                <Input
                   id="experienceRequired"
                   name="experienceRequired"
+                  type="number"
+                  min="0"
                   value={formData.experienceRequired}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="educationLevel" className="block text-sm font-medium text-gray-700 mb-2">
-                Niveau d'études requis
-              </label>
-              <input
-                  type="text"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="educationLevel" className="text-sm font-medium">
+                  Niveau d&apos;études requis
+                </label>
+                <Input
                   id="educationLevel"
                   name="educationLevel"
                   placeholder="ex. : BAC + 3 / Master"
                   value={formData.educationLevel}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="skillsRequired" className="block text-sm font-medium text-gray-700 mb-2">
-                Mots-clés compétences
-              </label>
-              <input
-                  type="text"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="skillsRequired" className="text-sm font-medium">
+                  Mots-clés compétences
+                </label>
+                <Input
                   id="skillsRequired"
                   name="skillsRequired"
+                  aria-describedby="skills-help"
                   placeholder="React, SQL, Management"
                   value={formData.skillsRequired}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-              />
+                />
+                <p id="skills-help" className="text-xs text-muted-foreground">
+                  Séparez par des virgules.
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* Date Limite & Date de début */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="applicationDeadline" className="block text-sm font-medium text-gray-700 mb-2">
-                Date limite de candidature
-              </label>
-              <input
-                  type="date"
+            {/* Dates */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label htmlFor="applicationDeadline" className="text-sm font-medium">
+                  Date limite de candidature
+                </label>
+                <Input
                   id="applicationDeadline"
                   name="applicationDeadline"
+                  type="date"
                   value={formData.applicationDeadline}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
-                Date de début prévue
-              </label>
-              <input
-                  type="date"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="startDate" className="text-sm font-medium">
+                  Date de début prévue
+                </label>
+                <Input
                   id="startDate"
                   name="startDate"
+                  type="date"
                   value={formData.startDate}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-              />
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Télétravail & Urgence (Boîtes à cocher) */}
-          <div className="flex gap-8 items-center bg-gray-50 p-4 rounded-lg border border-gray-100">
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                  type="checkbox"
-                  name="remoteAllowed"
-                  checked={formData.remoteAllowed}
-                  onChange={handleChange}
-                  className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
-              />
-              <span className="text-sm font-medium text-gray-700">Télétravail autorisé</span>
-            </label>
+            {/* Toggles */}
+            <fieldset className="rounded-lg border border-border bg-muted/30 p-4">
+              <legend className="px-2 text-sm font-medium text-muted-foreground">Options</legend>
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="remoteAllowed"
+                    checked={formData.remoteAllowed}
+                    onChange={handleChange}
+                    className="size-4 rounded border-input text-primary accent-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                  <span className="text-sm font-medium">Télétravail autorisé</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="isUrgent"
+                    checked={formData.isUrgent}
+                    onChange={handleChange}
+                    className="size-4 rounded border-input text-destructive accent-[color:var(--destructive)] focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2"
+                  />
+                  <span className="text-sm font-semibold text-destructive">Marquer comme urgent</span>
+                </label>
+              </div>
+            </fieldset>
 
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                  type="checkbox"
-                  name="isUrgent"
-                  checked={formData.isUrgent}
-                  onChange={handleChange}
-                  className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-              />
-              <span className="text-sm font-medium text-red-700 font-semibold">Marquer comme Urgent 🔥</span>
-            </label>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-              Description du poste *
-            </label>
-            <textarea
+            {/* Description */}
+            <div className="space-y-1.5">
+              <label htmlFor="description" className="text-sm font-medium">
+                Description du poste *
+              </label>
+              <Textarea
                 id="description"
                 name="description"
                 required
+                aria-required="true"
                 rows={6}
                 value={formData.description}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-                placeholder="Décrivez le poste, les responsabilités..."
-            />
-          </div>
+                placeholder="Décrivez le poste, les responsabilités…"
+              />
+            </div>
 
-          {/* Exigences */}
-          <div>
-            <label htmlFor="requirements" className="block text-sm font-medium text-gray-700 mb-2">
-              Exigences détaillées *
-            </label>
-            <textarea
+            {/* Exigences */}
+            <div className="space-y-1.5">
+              <label htmlFor="requirements" className="text-sm font-medium">
+                Exigences détaillées *
+              </label>
+              <Textarea
                 id="requirements"
                 name="requirements"
                 required
+                aria-required="true"
                 rows={4}
                 value={formData.requirements}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-                placeholder="Écrivez les critères indispensables requis pour ce poste..."
-            />
-          </div>
+                placeholder="Écrivez les critères indispensables requis pour ce poste…"
+              />
+            </div>
 
-          {/* Boutons d'actions */}
-          <div className="flex gap-4 pt-4">
-            <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? "Publication en cours..." : "Publier l'offre d'emploi"}
-            </button>
-            <button
+            {/* Actions */}
+            <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => router.back()}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition"
-            >
-              Annuler
-            </button>
-          </div>
-        </form>
-      </div>
+                className="sm:w-auto"
+              >
+                Annuler
+              </Button>
+              <Button type="submit" disabled={isSubmitting} size="lg" className="flex-1">
+                {isSubmitting ? "Publication en cours…" : "Publier l'offre d'emploi"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

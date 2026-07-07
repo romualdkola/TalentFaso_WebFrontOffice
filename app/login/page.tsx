@@ -5,6 +5,17 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getApiUrl } from "@/lib/api";
 import { LoginResponse } from "@/types/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,6 +23,7 @@ export default function LoginPage() {
     email: "",
     password: "",
   });
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,11 +32,23 @@ export default function LoginPage() {
       ...formData,
       [e.target.name]: e.target.value,
     });
+    setFieldErrors((prev) => ({ ...prev, [e.target.name]: undefined }));
     setError(null);
+  };
+
+  const validate = () => {
+    const errors: { email?: string; password?: string } = {};
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim()) errors.email = "L'adresse email est requise.";
+    else if (!emailRe.test(formData.email.trim())) errors.email = "Veuillez saisir une adresse email valide.";
+    if (!formData.password) errors.password = "Le mot de passe est requis.";
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
     setIsSubmitting(true);
     setError(null);
 
@@ -49,15 +73,15 @@ export default function LoginPage() {
       }
 
       const data: LoginResponse = await response.json();
-      
+
       if (data.token) {
         localStorage.setItem("authToken", data.token);
       }
-      
+
       if (data.refreshToken) {
         localStorage.setItem("refreshToken", data.refreshToken);
       }
-      
+
       const userData = {
         id: data.id,
         uuid: data.uuid,
@@ -69,14 +93,7 @@ export default function LoginPage() {
       localStorage.setItem("user", JSON.stringify(userData));
 
       window.dispatchEvent(new Event("authChange"));
-
-      if (data.isFirstLogin) {
-        router.push("/");
-      } else if (data.role === "EMPLOYER") {
-        router.push("/");
-      } else {
-        router.push("/");
-      }
+      router.push("/");
     } catch (err) {
       setError(
         err instanceof Error
@@ -89,96 +106,107 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-4xl font-bold text-gray-900">
-            Connexion
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+    <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center px-4 py-8">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold">Connexion</CardTitle>
+          <CardDescription>
             Ou{" "}
             <Link
               href="/jobs"
-              className="font-medium text-primary hover:text-primary/80"
+              className="font-medium text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:underline"
             >
               continuez sans compte
             </Link>
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium">
                 Email *
               </label>
-              <input
+              <Input
                 id="email"
                 name="email"
                 type="email"
                 autoComplete="email"
                 required
+                aria-required="true"
+                aria-invalid={!!fieldErrors.email}
+                aria-describedby={fieldErrors.email ? "email-error" : undefined}
                 value={formData.email}
                 onChange={handleChange}
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent focus:z-10 sm:text-sm"
                 placeholder="Entrez votre email..."
               />
+              {fieldErrors.email && (
+                <p id="email-error" className="text-xs font-medium text-destructive">
+                  {fieldErrors.email}
+                </p>
+              )}
             </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium">
                 Mot de passe *
               </label>
-              <input
+              <Input
                 id="password"
                 name="password"
                 type="password"
                 autoComplete="current-password"
                 required
+                aria-required="true"
+                aria-invalid={!!fieldErrors.password}
+                aria-describedby={fieldErrors.password ? "password-error" : undefined}
                 value={formData.password}
                 onChange={handleChange}
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent focus:z-10 sm:text-sm"
                 placeholder="Entrez votre mot de passe..."
               />
+              {fieldErrors.password && (
+                <p id="password-error" className="text-xs font-medium text-destructive">
+                  {fieldErrors.password}
+                </p>
+              )}
             </div>
-          </div>
 
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
-              {error}
-            </div>
-          )}
+            {error && (
+              <Alert variant="destructive" role="alert">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-          <div className="flex items-center justify-between">
             <div className="text-sm">
               <Link
                 href="#"
-                className="font-medium text-primary hover:text-primary/80"
+                className="font-medium text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:underline"
               >
                 Mot de passe oublié ?
               </Link>
             </div>
-          </div>
 
-          <div>
-            <button
+            <Button
               type="submit"
+              className="w-full"
+              size="lg"
               disabled={isSubmitting}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-400 disabled:cursor-not-allowed transition"
             >
               {isSubmitting ? "Connexion en cours..." : "Se connecter"}
-            </button>
-          </div>
+            </Button>
+          </form>
+        </CardContent>
 
-          <div className="text-center text-sm text-gray-600">
-            Pas encore de compte ?{" "}
-            <Link
-              href="#"
-              className="font-medium text-primary hover:text-primary/80"
-            >
-              S'inscrire
-            </Link>
-          </div>
-        </form>
-      </div>
+        <CardFooter className="justify-center text-sm text-muted-foreground">
+          Pas encore de compte ?{" "}
+          <Link
+            href="/register"
+            className="ml-1 font-medium text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:underline"
+          >
+            S&apos;inscrire
+          </Link>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

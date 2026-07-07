@@ -29,9 +29,15 @@ export default function Footer() {
   const isRecruiter = isAuth && user && (user.role === "RECRUITER" || user.role === "EMPLOYER");
 
   return (
-    <footer className="bg-gray-900 text-white py-12 mt-20">
+    <footer
+      className="py-16 mt-20"
+      style={{
+        backgroundColor: "var(--footer-bg)",
+        color: "var(--footer-fg)",
+      }}
+    >
       <div className="container mx-auto px-4">
-        <div className={`grid grid-cols-1 gap-8 ${isRecruiter ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+        <div className={`grid grid-cols-1 gap-12 ${isRecruiter ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
           <div>
             <Link href="/" className="flex items-center gap-2 mb-4">
               <Image
@@ -42,23 +48,20 @@ export default function Footer() {
                 className="object-contain"
               />
             </Link>
-            <p className="text-gray-400">
+            <p className="leading-relaxed" style={{ color: "var(--footer-muted)" }}>
               Connecter les talents aux opportunités au Burkina Faso
             </p>
           </div>
           <div>
-            <h4 className="text-lg font-semibold mb-4">Pour les candidats</h4>
-            <ul className="space-y-2 text-gray-400">
+            <h4 className="text-lg font-semibold mb-4 font-heading">Pour les candidats</h4>
+            <ul className="space-y-3" style={{ color: "var(--footer-muted)" }}>
               <li>
-                <Link href="/jobs" className="hover:text-white transition">
-                  Offres d'emploi
+                <Link href="/jobs" className="hover:text-white transition-colors duration-200">
+                  Offres d&apos;emploi
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/applications"
-                  className="hover:text-white transition"
-                >
+                <Link href="/applications" className="hover:text-white transition-colors duration-200">
                   Mes candidatures
                 </Link>
               </li>
@@ -66,15 +69,15 @@ export default function Footer() {
           </div>
           {isRecruiter && (
             <div>
-              <h4 className="text-lg font-semibold mb-4">Pour les employeurs</h4>
-              <ul className="space-y-2 text-gray-400">
+              <h4 className="text-lg font-semibold mb-4 font-heading">Pour les employeurs</h4>
+              <ul className="space-y-3" style={{ color: "var(--footer-muted)" }}>
                 <li>
-                  <Link href="/jobs/new" className="hover:text-white transition">
+                  <Link href="/jobs/new" className="hover:text-white transition-colors duration-200">
                     Publier une offre
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition">
+                  <Link href="#" className="hover:text-white transition-colors duration-200">
                     Trouver des talents
                   </Link>
                 </li>
@@ -82,23 +85,26 @@ export default function Footer() {
             </div>
           )}
           <div>
-            <h4 className="text-lg font-semibold mb-4">Entreprise</h4>
-            <ul className="space-y-2 text-gray-400">
+            <h4 className="text-lg font-semibold mb-4 font-heading">Entreprise</h4>
+            <ul className="space-y-3" style={{ color: "var(--footer-muted)" }}>
               <li>
-                <Link href="#" className="hover:text-white transition">
+                <Link href="#" className="hover:text-white transition-colors duration-200">
                   À propos
                 </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-white transition">
+                <Link href="#" className="hover:text-white transition-colors duration-200">
                   Contact
                 </Link>
               </li>
             </ul>
           </div>
         </div>
-        <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 Talent Faso. Tous droits réservés.</p>
+        <div
+          className="mt-12 pt-8 text-center"
+          style={{ borderTop: "1px solid var(--footer-border)", color: "var(--footer-muted)" }}
+        >
+          <p>&copy; {new Date().getFullYear()} Talent Faso. Tous droits réservés.</p>
         </div>
       </div>
     </footer>

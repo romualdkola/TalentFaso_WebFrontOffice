@@ -2,12 +2,45 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ChevronLeft, AlertCircle } from "lucide-react";
 import { getJobByUuid } from "@/lib/jobsApi";
-import ApplicationForm from "@/components/ApplicationForm";
+import JobDetail from "@/components/JobDetail";
 import { Job } from "@/types/job";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface JobDetailPageProps {
   params: { id: string };
+}
+
+function JobDetailSkeleton() {
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
+      <Skeleton className="h-4 w-28" />
+      <div className="flex gap-4">
+        <Skeleton className="size-14 rounded-xl shrink-0" />
+        <div className="space-y-2 flex-1">
+          <Skeleton className="h-7 w-3/4" />
+          <Skeleton className="h-5 w-1/2" />
+        </div>
+      </div>
+      <div className="flex gap-3">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-4 w-20" />
+      </div>
+      <Skeleton className="h-11 w-48" />
+      <div className="grid grid-cols-3 gap-3 pt-4">
+        {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
+      </div>
+      <div className="space-y-3 pt-2">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+        <Skeleton className="h-4 w-4/6" />
+      </div>
+    </div>
+  );
 }
 
 export default function JobDetailPage({ params }: JobDetailPageProps) {
@@ -17,179 +50,67 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadJob = async () => {
+    if (!id) return;
+    (async () => {
       setLoading(true);
       setError(null);
-      
       try {
-        const jobData = await getJobByUuid(id);
-        if (jobData) {
-          setJob(jobData);
-        } else {
-          setError("Offre d'emploi introuvable");
-        }
+        const data = await getJobByUuid(id);
+        if (data) setJob(data);
+        else setError("Offre introuvable");
       } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Erreur lors du chargement de l'offre d'emploi"
-        );
+        setError(err instanceof Error ? err.message : "Erreur de chargement");
       } finally {
         setLoading(false);
       }
-    };
-
-    if (id) {
-      loadJob();
-    }
+    })();
   }, [id]);
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "full-time":
-        return "bg-green-100 text-green-800";
-      case "part-time":
-        return "bg-blue-100 text-blue-800";
-      case "contract":
-        return "bg-purple-100 text-purple-800";
-      case "internship":
-        return "bg-yellow-100 text-yellow-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case "full-time":
-        return "Temps plein";
-      case "part-time":
-        return "Temps partiel";
-      case "contract":
-        return "Contrat";
-      case "internship":
-        return "Stage";
-      default:
-        return type;
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-12 text-center">
-        <p className="text-gray-600">Chargement de l'offre d'emploi...</p>
-      </div>
-    );
-  }
+  if (loading) return <JobDetailSkeleton />;
 
   if (error || !job) {
     return (
-      <div className="container mx-auto px-4 py-12 text-center">
-        <h1 className="text-3xl font-bold mb-4">Offre introuvable</h1>
-        <p className="text-gray-600 mb-6">
-          {error || "L'offre d'emploi que vous recherchez n'existe pas."}
+      <div className="container mx-auto px-4 py-20 max-w-xl text-center space-y-5">
+        <div className="mx-auto size-16 rounded-full bg-destructive/10 flex items-center justify-center">
+          <AlertCircle className="size-8 text-destructive" />
+        </div>
+        <h1 className="text-2xl font-bold font-heading">Offre introuvable</h1>
+        <p className="text-muted-foreground text-sm">
+          {error ?? "Cette offre d'emploi n'existe pas ou a été supprimée."}
         </p>
-        <Link
-          href="/jobs"
-          className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition"
-        >
-          Parcourir toutes les offres
-        </Link>
+        <Button asChild>
+          <Link href="/jobs">
+            <ChevronLeft className="size-4 mr-1" /> Retour aux offres
+          </Link>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Link
-        href="/jobs"
-        className="text-primary hover:text-primary/80 mb-4 inline-block"
-      >
-        ← Retour aux offres
-      </Link>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Job Details */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow-md p-8">
-            {job.featured && (
-              <span className="bg-yellow-400 text-yellow-900 text-sm font-semibold px-3 py-1 rounded mb-4 inline-block">
-                Offre en vedette
-              </span>
-            )}
-            <h1 className="text-4xl font-bold mb-4">{job.title}</h1>
-            <p className="text-2xl text-gray-600 mb-6">{job.company}</p>
-
-            <div className="flex flex-wrap gap-4 mb-6">
-              <div className="flex items-center gap-2 text-gray-600">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-                <span>{job.location}</span>
-              </div>
-              <span className={`px-3 py-1 rounded font-semibold ${getTypeColor(job.type)}`}>
-                {getTypeLabel(job.type)}
-              </span>
-              {job.salary && (
-                <span className="text-primary font-semibold">{job.salary}</span>
-              )}
-            </div>
-
-            <div className="border-t border-b py-6 my-6">
-              <h2 className="text-2xl font-bold mb-4">Description du poste</h2>
-              <p className="text-gray-700 whitespace-pre-line">{job.description}</p>
-            </div>
-
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-4">Exigences</h2>
-              <ul className="list-disc list-inside space-y-2 text-gray-700">
-                {job.requirements.map((req, index) => (
-                  <li key={index}>{req}</li>
-                ))}
-              </ul>
-            </div>
-
-            {job.benefits && job.benefits.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-4">Avantages</h2>
-                <ul className="list-disc list-inside space-y-2 text-gray-700">
-                  {job.benefits.map((benefit, index) => (
-                    <li key={index}>{benefit}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="flex gap-4 text-sm text-gray-600 pt-6 border-t">
-              <span>
-                Publié le {new Date(job.postedDate).toLocaleDateString("fr-FR")}
-              </span>
-              {job.deadline && (
-                <span>
-                  Date limite : {new Date(job.deadline).toLocaleDateString("fr-FR")}
-                </span>
-              )}
-            </div>
-          </div>
+    <div className="min-h-screen bg-background">
+      {/* Breadcrumb */}
+      <div className="border-b border-border bg-card">
+        <div className="container mx-auto px-4 max-w-4xl py-3">
+          <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Link href="/" className="hover:text-foreground transition-colors">Accueil</Link>
+            <span>/</span>
+            <Link href="/jobs" className="hover:text-foreground transition-colors">Offres d&apos;emploi</Link>
+            <span>/</span>
+            <span className="text-foreground font-medium truncate max-w-[200px]">{job.title}</span>
+          </nav>
         </div>
+      </div>
 
-        {/* Application Form Sidebar */}
-        <div className="lg:col-span-1">
-          <div className="bg-primary/5 rounded-lg shadow-md p-6 sticky top-20">
-            <h2 className="text-2xl font-bold mb-4">Postuler pour ce poste</h2>
-            <ApplicationForm jobId={job.id} />
-          </div>
+      {/* Detail content */}
+      <div className="container mx-auto px-4 max-w-4xl py-8">
+        <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+          <JobDetail
+            job={job}
+            standalone
+            showBackButton
+            onBack={() => window.history.back()}
+          />
         </div>
       </div>
     </div>

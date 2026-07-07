@@ -2,18 +2,114 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  Search,
+  MapPin,
+  Briefcase,
+  Users,
+  Building2,
+  TrendingUp,
+  ArrowRight,
+  Zap,
+  CheckCircle,
+  Clock,
+} from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import {
+  faCode,
+  faUsers,
+  faBriefcase,
+  faBullhorn,
+  faCoins,
+  faChartBar,
+  faGears,
+  faStethoscope,
+  faScaleBalanced,
+  faCartShopping,
+  faTruck,
+  faGraduationCap,
+  faHardHat,
+  faPalette,
+  faDatabase,
+  faLayerGroup,
+  faLaptopCode,
+  faClipboardList,
+  faFlag,
+} from "@fortawesome/free-solid-svg-icons";
+import { faJs, faJava, faPython, faReact, faNode } from "@fortawesome/free-brands-svg-icons";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+
+library.add(
+  faCode, faUsers, faBriefcase, faBullhorn, faCoins, faChartBar, faGears,
+  faStethoscope, faScaleBalanced, faCartShopping, faTruck, faGraduationCap,
+  faHardHat, faPalette, faDatabase, faLayerGroup, faLaptopCode, faClipboardList,
+  faJs, faJava, faPython, faReact, faNode, faFlag,
+);
 import JobCard from "@/components/JobCard";
-import {fetchActiveSkillTypes, fetchDashboardStats, fetchJobs, mapJobOfferToJob} from "@/lib/jobsApi";
+import JobCardSkeleton from "@/components/JobCardSkeleton";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  fetchActiveSkillTypes,
+  fetchDashboardStats,
+  fetchJobs,
+  mapJobOfferToJob,
+} from "@/lib/jobsApi";
+import { DashboardStats } from "@/types/api";
 import { Job } from "@/types/job";
 
+const CATEGORY_ICONS: Record<string, { icon: IconDefinition; color: string }> = {
+  Java:                   { icon: faJava,          color: "text-orange-500" },
+  Python:                 { icon: faPython,         color: "text-blue-500"   },
+  JavaScript:             { icon: faJs,             color: "text-yellow-400" },
+  "Ressources Humaines":  { icon: faUsers,          color: "text-violet-500" },
+  "Gestion de Projet":    { icon: faClipboardList,  color: "text-sky-500"    },
+  Marketing:              { icon: faBullhorn,       color: "text-pink-500"   },
+  Finance:                { icon: faCoins,          color: "text-emerald-500"},
+  "Data Sciences":        { icon: faChartBar,       color: "text-indigo-500" },
+  "Data Science":         { icon: faDatabase,       color: "text-indigo-500" },
+  Ingénierie:             { icon: faGears,          color: "text-slate-600"  },
+  Médecine:               { icon: faStethoscope,    color: "text-red-500"    },
+  Droit:                  { icon: faScaleBalanced,  color: "text-amber-600"  },
+  Commerce:               { icon: faCartShopping,   color: "text-teal-500"   },
+  Logistique:             { icon: faTruck,          color: "text-orange-600" },
+  Enseignement:           { icon: faGraduationCap,  color: "text-purple-500" },
+  BTP:                    { icon: faHardHat,        color: "text-yellow-600" },
+  Design:                 { icon: faPalette,        color: "text-fuchsia-500"},
+  "Développement Web":    { icon: faLaptopCode,     color: "text-blue-600"   },
+  React:                  { icon: faReact,          color: "text-cyan-400"   },
+  "Node.js":              { icon: faNode,           color: "text-green-600"  },
+};
+
+function timeAgo(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`;
+  if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)}h`;
+  const days = Math.floor(diff / 86400);
+  if (days === 1) return "Hier";
+  if (days < 30) return `Il y a ${days} jours`;
+  return date.toLocaleDateString("fr-FR");
+}
+
 export default function Home() {
+  const router = useRouter();
+  const [searchWhat, setSearchWhat] = useState("");
+  const [searchWhere, setSearchWhere] = useState("");
+
   const [featuredJobs, setFeaturedJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [categories, setCategories] = useState<any[]>([]);
   const [loadingCats, setLoadingCats] = useState(true);
 
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
@@ -21,341 +117,363 @@ export default function Home() {
       setLoading(true);
       setLoadingCats(true);
 
-      // 1. Chargement des offres en vedette
       try {
-        const response = await fetchJobs({ page: 0, size: 6, sort: ["createdAt,desc"] });
-        const jobs = response.content.map(mapJobOfferToJob).slice(0, 6);
-        setFeaturedJobs(jobs);
-      } catch (error) {
-        console.error("Erreur offres:", error);
-      } finally {
-        setLoading(false);
-      }
+        const response = await fetchJobs({ page: 0, size: 8, sort: ["createdAt,desc"] });
+        setFeaturedJobs(response.content.map(mapJobOfferToJob).slice(0, 8));
+      } catch {}
+      finally { setLoading(false); }
 
-      // 2. Chargement des vrais secteurs d'activité
       try {
         const activeCats = await fetchActiveSkillTypes();
-        setCategories(activeCats.slice(0, 8)); // On prend les 8 premiers pour l'affichage
-      } catch (error) {
-        console.error("Erreur catégories:", error);
-      } finally {
-        setLoadingCats(false);
-      }
+        setCategories(activeCats.slice(0, 12));
+      } catch {}
+      finally { setLoadingCats(false); }
 
-    // 3. Statistiques réelles
-    try {
-      const data = await fetchDashboardStats();
-      setStats(data);
-    } catch (error) {
-      console.error("Erreur stats:", error);
-    } finally {
-      setLoadingStats(false);
-    }
-  };
-
+      try {
+        const data = await fetchDashboardStats();
+        setStats(data);
+      } catch {}
+      finally { setLoadingStats(false); }
+    };
     loadHomeData();
   }, []);
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    if (searchWhat.trim()) params.set("q", searchWhat.trim());
+    if (searchWhere.trim()) params.set("location", searchWhere.trim());
+    router.push(`/jobs${params.toString() ? `?${params}` : ""}`);
+  };
+
   return (
-      <div className="flex flex-col min-h-screen">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-r from-primary to-purple-600 text-white py-20 shadow-inner">
-          <div className="container mx-auto px-4">
-            <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-5xl font-bold mb-6 tracking-tight">
-                Trouvez votre emploi de rêve au Burkina Faso
-              </h1>
-              <p className="text-xl mb-8 text-purple-100 max-w-2xl mx-auto">
-                Découvrez des opportunités passionnantes et connectez-vous avec les meilleurs employeurs.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                {/* Bouton Principal (Plein) */}
-                <Link
-                    href="/jobs"
-                    className="w-full sm:w-auto text-center bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:opacity-95 active:scale-95 transition shadow-lg"
-                >
-                  Parcourir les offres
-                </Link>
-
-                {/* Bouton Secondaire (Bordure) */}
-                <Link
-                    href="/jobs/new"
-                    className="w-full sm:w-auto text-center bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary active:scale-95 transition"
-                >
-                  Publier une offre
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Placer cette section juste après le Hero et avant les Offres en vedette */}
-        <section className="bg-white border-b border-gray-100 py-8 min-h-[100px] flex items-center">
-          <div className="container mx-auto px-4">
-            {loadingStats ? (
-                <div className="flex justify-center items-center w-full py-4">
-                  <p className="text-gray-400 text-sm animate-pulse">Mise à jour des statistiques...</p>
-                </div>
-            ) : stats ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-                  {/* Offres d'emploi */}
-                  <div>
-                    <p className="text-3xl md:text-4xl font-extrabold text-primary">
-                      {stats.summary?.totalJobOffers?.toLocaleString() || 0}
-                    </p>
-                    <p className="text-sm text-gray-500 font-medium mt-1">Offres d'emploi</p>
-                  </div>
-
-                  {/* Candidats */}
-                  <div>
-                    <p className="text-3xl md:text-4xl font-extrabold text-purple-600">
-                      {stats.summary?.totalCandidates?.toLocaleString() || 0}
-                    </p>
-                    <p className="text-sm text-gray-500 font-medium mt-1">Candidats inscrits</p>
-                  </div>
-
-                  {/* Entreprises */}
-                  <div>
-                    <p className="text-3xl md:text-4xl font-extrabold text-green-600">
-                      {stats.summary?.partnerCompanies?.toLocaleString() || 0}
-                    </p>
-                    <p className="text-sm text-gray-500 font-medium mt-1">Entreprises partenaires</p>
-                  </div>
-
-                  {/* Candidatures Total */}
-                  <div>
-                    <p className="text-3xl md:text-4xl font-extrabold text-amber-500">
-                      {stats.general?.totalApplications?.toLocaleString() || 0}
-                    </p>
-                    <p className="text-sm text-gray-500 font-medium mt-1">Candidatures envoyées</p>
-                  </div>
-                </div>
-            ) : (
-                // Sécurité si l'API échoue : on remet des chiffres indicatifs propres
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center opacity-80">
-                  <div>
-                    <p className="text-3xl md:text-4xl font-extrabold text-primary">+100</p>
-                    <p className="text-sm text-gray-500 font-medium mt-1">Offres disponibles</p>
-                  </div>
-                  <div>
-                    <p className="text-3xl md:text-4xl font-extrabold text-purple-600">+1 000</p>
-                    <p className="text-sm text-gray-500 font-medium mt-1">Candidats</p>
-                  </div>
-                  <div>
-                    <p className="text-3xl md:text-4xl font-extrabold text-green-600">+50</p>
-                    <p className="text-sm text-gray-500 font-medium mt-1">Partenaires</p>
-                  </div>
-                  <div>
-                    <p className="text-3xl md:text-4xl font-extrabold text-amber-500">En direct</p>
-                    <p className="text-sm text-gray-500 font-medium mt-1">Recrutement actif</p>
-                  </div>
-                </div>
-            )}
-          </div>
-        </section>
-
-
-        <section className="bg-gray-50 py-12 border-b border-gray-150">
-          <div className="container mx-auto px-4 text-center">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-6">
-              Ils nous font confiance pour leurs recrutements
+    <div className="flex flex-col min-h-screen">
+      {/* ── HERO ── */}
+      <section className="bg-gradient-to-br from-primary via-primary/90 to-[#3d0010] text-white pt-16 pb-24 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEuNSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA4KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30" />
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="max-w-3xl mx-auto text-center">
+            <Badge className="mb-4 bg-white/10 text-white border-white/20 hover:bg-white/20 gap-1.5">
+              <FontAwesomeIcon icon={faFlag} className="size-3" />
+              N°1 de l&apos;emploi au Burkina Faso
+            </Badge>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 font-heading leading-tight tracking-tight">
+              Trouvez votre prochain emploi
+            </h1>
+            <p className="text-white/80 text-lg mb-10">
+              Des milliers d&apos;offres vérifiées. Postulez en quelques clics.
             </p>
-            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60 grayscale hover:grayscale-0 transition-all">
-              {/* Tu pourras remplacer ces textes par des composants <Image /> de logos réels */}
-              <span className="text-xl font-bold text-gray-700">Orange BF</span>
-              <span className="text-xl font-bold text-gray-700">Moov Africa</span>
-              <span className="text-xl font-bold text-gray-700">Coris Bank</span>
-              <span className="text-xl font-bold text-gray-700">Sonabhy</span>
-              <span className="text-xl font-bold text-gray-700">Burkina Startup</span>
+
+            {/* Search bar */}
+            <form
+              onSubmit={handleSearch}
+              role="search"
+              aria-label="Rechercher une offre d'emploi"
+              className="bg-white rounded-xl p-2 shadow-2xl flex flex-col sm:flex-row gap-2"
+            >
+              <div className="flex items-center flex-1 gap-2 px-3">
+                <Search className="size-5 text-muted-foreground shrink-0" aria-hidden="true" />
+                <label htmlFor="search-what" className="sr-only">
+                  Poste, compétence ou entreprise
+                </label>
+                <input
+                  id="search-what"
+                  name="q"
+                  type="search"
+                  value={searchWhat}
+                  onChange={(e) => setSearchWhat(e.target.value)}
+                  placeholder="Poste, compétence ou entreprise"
+                  className="flex-1 text-foreground bg-transparent text-sm outline-none placeholder:text-muted-foreground py-2"
+                />
+              </div>
+              <div className="hidden sm:block w-px bg-border self-stretch" />
+              <div className="flex items-center flex-1 gap-2 px-3">
+                <MapPin className="size-5 text-muted-foreground shrink-0" aria-hidden="true" />
+                <label htmlFor="search-where" className="sr-only">
+                  Ville ou région
+                </label>
+                <input
+                  id="search-where"
+                  name="location"
+                  type="search"
+                  value={searchWhere}
+                  onChange={(e) => setSearchWhere(e.target.value)}
+                  placeholder="Ville ou région"
+                  className="flex-1 text-foreground bg-transparent text-sm outline-none placeholder:text-muted-foreground py-2"
+                />
+              </div>
+              <Button type="submit" size="lg" className="rounded-lg px-8 shrink-0">
+                Rechercher
+              </Button>
+            </form>
+
+            <div className="mt-5 flex flex-wrap justify-center gap-2 text-sm text-white/70">
+              <span>Recherches populaires :</span>
+              {["Développeur", "Marketing", "RH", "Finance", "Logistique"].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => { setSearchWhat(t); }}
+                  className="underline underline-offset-2 hover:text-white transition-colors"
+                >
+                  {t}
+                </button>
+              ))}
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Section Explorer par secteur (Connectée à l'API) */}
-        <section className="bg-white py-16">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-10">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Explorer par secteur</h2>
-              <p className="text-gray-500">Trouvez des opportunités spécifiques à votre domaine d'expertise</p>
-            </div>
+        {/* Wave divider */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 60" className="w-full fill-background">
+            <path d="M0,60 C360,0 1080,0 1440,60 L1440,60 L0,60 Z" />
+          </svg>
+        </div>
+      </section>
 
-            {loadingCats ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-400 animate-pulse">Chargement des secteurs...</p>
+      {/* ── STATS ── */}
+      <section className="bg-background py-10">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            {loadingStats ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="mx-auto h-9 w-24" />
+                  <Skeleton className="mx-auto h-4 w-28" />
                 </div>
-            ) : categories.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {categories.map((cat) => (
-                      <Link
-                          key={cat.uuid}
-                          href={`/jobs?skillType=${cat.uuid}`}
-                          className="p-5 border border-gray-100 rounded-xl bg-gray-50/50 hover:bg-white hover:border-primary hover:shadow-md transition group text-left flex flex-col justify-between"
-                      >
-                        <div>
-                          {/* Affichage de l'icône de l'API ou d'une mallette par défaut */}
-                          <div className="text-2xl mb-3 bg-purple-50 w-10 h-10 rounded-lg flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                            {cat.iconUrl ? (
-                                <img src={cat.iconUrl} alt="" className="w-6 h-6 object-contain" />
-                            ) : (
-                                <span className="text-xl">💼</span>
-                            )}
-                          </div>
-                          <h4 className="font-bold text-gray-900 group-hover:text-primary transition-colors line-clamp-1">
-                            {cat.name}
-                          </h4>
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
-                            {cat.description || "Découvrir les offres d'emploi disponibles dans ce domaine."}
-                          </p>
-                        </div>
-                      </Link>
-                  ))}
-                </div>
+              ))
             ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-400">Aucun secteur disponible pour le moment.</p>
-                </div>
-            )}
-          </div>
-        </section>
-
-          <section className="bg-gradient-to-br from-gray-900 to-purple-950 text-white py-16">
-              <div className="container mx-auto px-4 max-w-4xl text-center">
-                  <h2 className="text-3xl font-bold mb-4">Ne ratez plus aucune opportunité</h2>
-                  <p className="text-purple-200 mb-8 max-w-xl mx-auto">
-                      Recevez chaque semaine le top des offres d'emploi vérifiées au Burkina Faso directement dans votre boîte mail.
+              <>
+                <div>
+                  <p className="text-3xl font-extrabold text-primary font-heading">
+                    {stats?.summary?.totalJobOffers?.toLocaleString() ?? "100+"}
                   </p>
-                  <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onSubmit={(e) => e.preventDefault()}>
-                      <input
-                          type="email"
-                          placeholder="Votre adresse email"
-                          className="px-4 py-3 rounded-lg text-gray-900 bg-white w-full focus:outline-none focus:ring-2 focus:ring-purple-400"
-                          required
-                      />
-                      <button
-                          type="submit"
-                          className="bg-primary text-white font-semibold px-6 py-3 rounded-lg hover:bg-opacity-90 active:scale-95 transition whitespace-nowrap"
-                      >
-                          S'abonner aux alertes
-                      </button>
-                  </form>
-              </div>
-          </section>
-
-
-        {/* Featured Jobs Section (Style Sombre & Épuré) */}
-        <section className="bg-gray-900 text-white py-16 border-t border-gray-800">
-          <div className="container mx-auto px-4">
-            <div className="flex justify-between items-center mb-10">
-              <h2 className="text-3xl font-bold tracking-tight">Offres d'emploi en vedette</h2>
-              <Link
-                  href="/jobs"
-                  className="text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1 transition-transform hover:translate-x-1"
-              >
-                Voir tout <span>→</span>
-              </Link>
-            </div>
-
-            {loading ? (
-                <div className="text-center py-12">
-                  {/* Correction de la couleur pour le fond sombre */}
-                  <p className="text-gray-400 text-lg animate-pulse">Chargement des offres d'emploi...</p>
+                  <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                    <Briefcase className="size-4" /> Offres d&apos;emploi
+                  </p>
                 </div>
-            ) : featuredJobs.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {featuredJobs.map((job) => (
-                      <JobCard key={job.id} job={job} />
-                  ))}
+                <div>
+                  <p className="text-3xl font-extrabold text-foreground font-heading">
+                    {stats?.summary?.totalCandidates?.toLocaleString() ?? "1 000+"}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                    <Users className="size-4" /> Candidats inscrits
+                  </p>
                 </div>
-            ) : (
-                <div className="text-center py-12">
-                  {/* Correction de la couleur pour le fond sombre */}
-                  <p className="text-gray-400 text-lg">Aucune offre d'emploi disponible pour le moment.</p>
+                <div>
+                  <p className="text-3xl font-extrabold text-accent font-heading">
+                    {stats?.summary?.partnerCompanies?.toLocaleString() ?? "50+"}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                    <Building2 className="size-4" /> Entreprises partenaires
+                  </p>
                 </div>
+                <div>
+                  <p className="text-3xl font-extrabold text-amber-500 font-heading">
+                    {stats?.general?.totalApplications?.toLocaleString() ?? "500+"}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                    <TrendingUp className="size-4" /> Candidatures envoyées
+                  </p>
+                </div>
+              </>
             )}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Features Section (Contrastes revus pour l'accessibilité) */}
-        <section className="bg-white py-20 border-t border-gray-100">
-          <div className="container mx-auto px-4">
-            {/* Titre passé en text-gray-900 pour donner de la force */}
-            <h2 className="text-3xl font-bold text-gray-900 text-center mb-16 tracking-tight">
-              Pourquoi choisir Talent Faso ?
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-
-              {/* Feature 1 */}
-              <div className="text-center flex flex-col items-center group">
-                <div className="bg-blue-50 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-sm transition-colors group-hover:bg-blue-100">
-                  <svg
-                      className="w-8 h-8 text-primary"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                    />
-                  </svg>
+      {/* ── TRUSTED BY — infinite marquee ── */}
+      <section className="border-y border-border bg-muted/30 py-10 overflow-hidden">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest text-center mb-7">
+          Ils font confiance à TalentFaso
+        </p>
+        <div className="marquee-wrapper">
+          <div className="marquee-track">
+            {[
+              { name: "Orange BF",       icon: faBullhorn,     color: "text-orange-500", bg: "bg-orange-50"  },
+              { name: "Moov Africa",     icon: faLayerGroup,   color: "text-blue-500",   bg: "bg-blue-50"    },
+              { name: "Coris Bank",      icon: faCoins,        color: "text-emerald-600",bg: "bg-emerald-50" },
+              { name: "Sonabhy",         icon: faGears,        color: "text-slate-600",  bg: "bg-slate-100"  },
+              { name: "Burkina Startup", icon: faLaptopCode,   color: "text-violet-600", bg: "bg-violet-50"  },
+              { name: "BSIC",            icon: faChartBar,     color: "text-sky-600",    bg: "bg-sky-50"     },
+              { name: "ONEF",            icon: faUsers,        color: "text-primary",    bg: "bg-primary/10" },
+              { name: "FAPE",            icon: faBriefcase,    color: "text-amber-600",  bg: "bg-amber-50"   },
+              /* duplicate for seamless loop */
+              { name: "Orange BF",       icon: faBullhorn,     color: "text-orange-500", bg: "bg-orange-50"  },
+              { name: "Moov Africa",     icon: faLayerGroup,   color: "text-blue-500",   bg: "bg-blue-50"    },
+              { name: "Coris Bank",      icon: faCoins,        color: "text-emerald-600",bg: "bg-emerald-50" },
+              { name: "Sonabhy",         icon: faGears,        color: "text-slate-600",  bg: "bg-slate-100"  },
+              { name: "Burkina Startup", icon: faLaptopCode,   color: "text-violet-600", bg: "bg-violet-50"  },
+              { name: "BSIC",            icon: faChartBar,     color: "text-sky-600",    bg: "bg-sky-50"     },
+              { name: "ONEF",            icon: faUsers,        color: "text-primary",    bg: "bg-primary/10" },
+              { name: "FAPE",            icon: faBriefcase,    color: "text-amber-600",  bg: "bg-amber-50"   },
+            ].map((partner, i) => (
+              <div
+                key={i}
+                className="flex flex-col items-center gap-2 mx-10 select-none"
+              >
+                <div className={`size-14 rounded-2xl ${partner.bg} flex items-center justify-center shadow-sm`}>
+                  <FontAwesomeIcon icon={partner.icon} className={`text-2xl ${partner.color}`} />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">Emplois de qualité</h3>
-                <p className="text-gray-650 max-w-sm leading-relaxed text-gray-600">
-                  Parcourez des offres d'emploi vérifiées provenant d'employeurs de confiance au Burkina.
-                </p>
+                <span className="text-sm font-semibold text-foreground/60 whitespace-nowrap">
+                  {partner.name}
+                </span>
               </div>
-
-              {/* Feature 2 */}
-              <div className="text-center flex flex-col items-center group">
-                <div className="bg-purple-50 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-sm transition-colors group-hover:bg-purple-100">
-                  <svg
-                      className="w-8 h-8 text-purple-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">Candidature facile</h3>
-                <p className="text-gray-650 max-w-sm leading-relaxed text-gray-600">
-                  Postulez rapidement en quelques clics grâce à notre processus de candidature ultra-simplifié.
-                </p>
-              </div>
-
-              {/* Feature 3 */}
-              <div className="text-center flex flex-col items-center group">
-                <div className="bg-green-50 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-sm transition-colors group-hover:bg-green-100">
-                  <svg
-                      className="w-8 h-8 text-green-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">Réponse rapide</h3>
-                <p className="text-gray-650 max-w-sm leading-relaxed text-gray-600">
-                  Recevez des retours rapides des recruteurs et suivez l'avancement de vos dossiers en temps réel.
-                </p>
-              </div>
-
-            </div>
+            ))}
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
+
+      {/* ── CATEGORIES ── */}
+      <section className="bg-background py-16">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-bold font-heading">Explorer par secteur</h2>
+              <p className="text-muted-foreground text-sm mt-1">Trouvez des offres dans votre domaine</p>
+            </div>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/jobs" className="gap-1">
+                Tout voir <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
+
+          {loadingCats ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 rounded-xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {categories.map((cat) => (
+                <Link
+                  key={cat.uuid}
+                  href={`/jobs?skillType=${cat.uuid}`}
+                  className="group flex flex-col items-center gap-2 p-4 rounded-xl border border-border bg-card hover:border-primary hover:bg-primary/5 hover:shadow-md transition-all duration-200 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span className="flex items-center justify-center size-10">
+                    {cat.iconUrl ? (
+                      <img src={cat.iconUrl} alt="" className="size-8 object-contain" />
+                    ) : (() => {
+                      const cfg = CATEGORY_ICONS[cat.name as keyof typeof CATEGORY_ICONS];
+                      return cfg
+                        ? <FontAwesomeIcon icon={cfg.icon} className={`text-2xl ${cfg.color}`} />
+                        : <FontAwesomeIcon icon={faBriefcase} className="text-2xl text-muted-foreground" />;
+                    })()}
+                  </span>
+                  <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">
+                    {cat.name}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── RECENT JOBS ── */}
+      <section className="bg-muted/30 py-16 border-t border-border">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-bold font-heading">Offres récentes</h2>
+              <p className="text-muted-foreground text-sm mt-1">Les dernières opportunités publiées</p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/jobs" className="gap-1">
+                Voir toutes les offres <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <JobCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : featuredJobs.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              {featuredJobs.map((job) => (
+                <JobCard key={job.id} job={job} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 text-muted-foreground">
+              <Briefcase className="size-10 mx-auto mb-3 opacity-30" />
+              <p>Aucune offre disponible pour le moment.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── NEWSLETTER ── */}
+      <section className="bg-primary text-white py-14">
+        <div className="container mx-auto px-4 max-w-2xl text-center">
+          <Zap className="size-10 mx-auto mb-4 text-white/80" />
+          <h2 className="text-2xl font-bold font-heading mb-2">Alertes emploi personnalisées</h2>
+          <p className="text-white/70 mb-8 text-sm">
+            Recevez chaque semaine les meilleures offres correspondant à votre profil.
+          </p>
+          <form
+            className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+            onSubmit={(e) => e.preventDefault()}
+          >
+            <Input
+              type="email"
+              placeholder="Votre adresse email"
+              className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus-visible:ring-white"
+              required
+            />
+            <Button
+              type="submit"
+              className="bg-white text-primary hover:bg-white/90 font-semibold shrink-0"
+            >
+              S&apos;abonner
+            </Button>
+          </form>
+        </div>
+      </section>
+
+      {/* ── WHY TALENTFASO ── */}
+      <section className="bg-background py-16 border-t border-border">
+        <div className="container mx-auto px-4">
+          <h2 className="text-2xl font-bold font-heading text-center mb-12">
+            Pourquoi choisir TalentFaso ?
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: <CheckCircle className="size-8 text-primary" />,
+                bg: "bg-primary/10",
+                title: "Offres vérifiées",
+                desc: "Toutes les offres sont vérifiées par notre équipe avant publication. Aucune arnaque.",
+              },
+              {
+                icon: <Zap className="size-8 text-amber-500" />,
+                bg: "bg-amber-50",
+                title: "Candidature rapide",
+                desc: "Postulez en moins de 2 minutes. Pas de création de compte obligatoire.",
+              },
+              {
+                icon: <Clock className="size-8 text-accent" />,
+                bg: "bg-accent/10",
+                title: "Réponse rapide",
+                desc: "Les recruteurs sont notifiés en temps réel et vous répondent vite.",
+              },
+            ].map(({ icon, bg, title, desc }) => (
+              <div key={title} className="text-center flex flex-col items-center group">
+                <div className={`${bg} size-16 rounded-2xl flex items-center justify-center mb-5 transition-transform group-hover:scale-110`}>
+                  {icon}
+                </div>
+                <h3 className="font-bold text-lg font-heading mb-2">{title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }

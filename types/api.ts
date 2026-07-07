@@ -75,3 +75,14 @@ export interface SkillType {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface DashboardStats {
+  summary?: {
+    totalJobOffers?: number;
+    totalCandidates?: number;
+    partnerCompanies?: number;
+  };
+  general?: {
+    totalApplications?: number;
+  };
+}

@@ -2,43 +2,290 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * TalentFaso Design Tokens
+ * Architecture inspired by Bootstrap 5.3 customization:
+ *   Primitive → Semantic → Component
+ * Color modes via data-theme attribute (equivalent to data-bs-theme)
+ */
 
-@media (prefers-color-scheme: dark) {
+@layer base {
+  /* ── PRIMITIVE TOKENS (brand palette) ── */
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+    /* Brand colors */
+    --tf-primary: #74101e;
+    --tf-primary-rgb: 116, 16, 30;
+    --tf-primary-hover: #621119;
+    --tf-primary-active: #541418;
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+    --tf-accent: #50CD89;
+    --tf-accent-rgb: 80, 205, 137;
+
+    --tf-destructive: #F1416C;
+    --tf-destructive-rgb: 241, 65, 108;
+
+    --tf-info: #009EF7;
+    --tf-success: #50CD89;
+    --tf-warning: #FFC700;
+
+    /* Typography */
+    --tf-font-heading: var(--font-poppins), "Poppins", sans-serif;
+    --tf-font-body: var(--font-open-sans), "Open Sans", sans-serif;
+    --tf-line-height: 1.6;
+    --tf-line-height-heading: 1.25;
+
+    /* Spacing scale (Bootstrap $spacers equivalent) */
+    --tf-spacer: 1rem;
+    --tf-spacer-1: 0.25rem;
+    --tf-spacer-2: 0.5rem;
+    --tf-spacer-3: 1rem;
+    --tf-spacer-4: 1.5rem;
+    --tf-spacer-5: 3rem;
+
+    /* Border radius scale */
+    --tf-radius-sm: 0.375rem;
+    --tf-radius: 0.625rem;
+    --tf-radius-lg: 0.75rem;
+    --tf-radius-xl: 1rem;
+    --tf-radius-pill: 50rem;
+
+    /* Focus ring (Bootstrap $focus-ring-* equivalent) */
+    --tf-ring-width: 2px;
+    --tf-ring-opacity: 0.25;
+    --tf-ring-offset: 2px;
+
+    /* Transitions */
+    --tf-transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ── LIGHT MODE (semantic tokens) ── */
+  :root,
+  [data-theme="light"] {
+    color-scheme: light;
+
+    --background: #F5F8FA;
+    --foreground: #181C32;
+
+    --card: #FFFFFF;
+    --card-foreground: #181C32;
+    --card-border: #EFF2F5;
+
+    --popover: #FFFFFF;
+    --popover-foreground: #181C32;
+
+    --primary: var(--tf-primary);
+    --primary-foreground: #FFFFFF;
+    --primary-hover: var(--tf-primary-hover);
+    --primary-subtle: #FEF2F3;
+    --primary-subtle-foreground: #74101e;
+
+    --secondary: #F5F8FA;
+    --secondary-foreground: #181C32;
+
+    --muted: #EFF2F5;
+    --muted-foreground: #7E8299;
+
+    --accent: var(--tf-accent);
+    --accent-foreground: #FFFFFF;
+    --accent-subtle: #EDF7F2;
+    --accent-subtle-foreground: #15803D;
+
+    --destructive: var(--tf-destructive);
+    --destructive-foreground: #FFFFFF;
+    --destructive-subtle: #FFF5F8;
+    --destructive-subtle-foreground: #BC264B;
+
+    --info: var(--tf-info);
+    --info-subtle: #F1F9FF;
+    --success: var(--tf-success);
+    --success-subtle: #E8FFF3;
+    --warning: var(--tf-warning);
+    --warning-subtle: #FFF8DD;
+
+    --border: #EFF2F5;
+    --input: #E4E6EF;
+    --ring: var(--tf-primary);
+    --ring-color: rgba(var(--tf-primary-rgb), var(--tf-ring-opacity));
+
+    --radius: var(--tf-radius);
+
+    /* Component tokens */
+    --btn-radius: var(--tf-radius);
+    --btn-padding-y: 0.5rem;
+    --btn-padding-x: 1rem;
+
+    --input-radius: var(--tf-radius);
+    --input-border-color: var(--border);
+    --input-focus-border-color: var(--primary);
+    --input-focus-ring: 0 0 0 var(--tf-ring-width) var(--ring-color);
+
+    --card-radius: var(--tf-radius-xl);
+    --card-padding: var(--tf-spacer-4);
+    --card-border-color: var(--card-border);
+    --card-cap-bg: rgba(0, 0, 0, 0.02);
+
+    --alert-radius: var(--tf-radius);
+
+    /* Footer (always dark section) */
+    --footer-bg: #181C32;
+    --footer-fg: #F5F8FA;
+    --footer-muted: #7E8299;
+    --footer-border: #2B2B40;
+  }
+
+  /* ── DARK MODE (semantic tokens) ── */
+  [data-theme="dark"] {
+    color-scheme: dark;
+
+    --background: #13131f;
+    --foreground: #e8e8f0;
+
+    --card: #1c1c2e;
+    --card-foreground: #e8e8f0;
+    --card-border: #2b2b40;
+
+    --popover: #1c1c2e;
+    --popover-foreground: #e8e8f0;
+
+    --primary: #74101e;
+    --primary-foreground: #FFFFFF;
+    --primary-hover: #74101e;
+    --primary-subtle: #FEF2F3;
+    --primary-subtle-foreground: #74101e;
+
+    --secondary: #2b2b40;
+    --secondary-foreground: #e8e8f0;
+
+    --muted: #2b2b40;
+    --muted-foreground: #9ca3af;
+
+    --accent: #6ee7a0;
+    --accent-foreground: #0a2015;
+    --accent-subtle: #0f2a1a;
+    --accent-subtle-foreground: #6ee7a0;
+
+    --destructive: var(--tf-destructive);
+    --destructive-foreground: #FFFFFF;
+    --destructive-subtle: #2a1018;
+    --destructive-subtle-foreground: var(--tf-destructive-subtle-foreground);
+
+    --info: #38bdf8;
+    --info-subtle: #0c1f33;
+    --success: #6ee7a0;
+    --success-subtle: #0f2a1a;
+    --warning: #fbbf24;
+    --warning-subtle: #2a2008;
+
+    --border: #2b2b40;
+    --input: #363650;
+    --ring: #e05a6a;
+    --ring-color: rgba(224, 90, 106, var(--tf-ring-opacity));
+
+    --card-cap-bg: rgba(255, 255, 255, 0.03);
+    --input-focus-border-color: var(--primary);
+    --input-focus-ring: 0 0 0 var(--tf-ring-width) var(--ring-color);
+
+    --footer-bg: #0a0a12;
+    --footer-fg: #e8e8f0;
+    --footer-muted: #6b7280;
+    --footer-border: #1f1f30;
+  }
+
+  /* ── BASE STYLES (Reboot equivalent) ── */
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply font-sans;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--tf-font-body);
+    line-height: var(--tf-line-height);
+    transition: background-color var(--tf-transition), color var(--tf-transition);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--tf-font-heading);
+    line-height: var(--tf-line-height-heading);
+  }
+
+  /* Focus visible — consistent across all interactive elements */
+  :focus-visible {
+    outline: var(--tf-ring-width) solid var(--ring);
+    outline-offset: var(--tf-ring-offset);
+  }
+
+  /* Prose dark mode support */
+  [data-theme="dark"] .prose {
+    --tw-prose-body: var(--foreground);
+    --tw-prose-headings: var(--foreground);
+    --tw-prose-links: var(--primary);
+    --tw-prose-bold: var(--foreground);
+    --tw-prose-counters: var(--muted-foreground);
+    --tw-prose-bullets: var(--muted-foreground);
+    --tw-prose-hr: var(--border);
+    --tw-prose-quotes: var(--foreground);
+    --tw-prose-quote-borders: var(--border);
+    --tw-prose-captions: var(--muted-foreground);
+    --tw-prose-code: var(--foreground);
+    --tw-prose-pre-code: var(--foreground);
+    --tw-prose-pre-bg: var(--muted);
+    --tw-prose-th-borders: var(--border);
+    --tw-prose-td-borders: var(--border);
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Subtle background utilities (Bootstrap bg-*-subtle equivalent) */
+  .bg-primary-subtle {
+    background-color: var(--primary-subtle);
+    color: var(--primary-subtle-foreground);
+  }
+  .bg-accent-subtle {
+    background-color: var(--accent-subtle);
+    color: var(--accent-subtle-foreground);
+  }
+  .bg-destructive-subtle {
+    background-color: var(--destructive-subtle);
+    color: var(--destructive-subtle-foreground);
+  }
+  .bg-info-subtle {
+    background-color: var(--info-subtle);
+  }
+  .bg-success-subtle {
+    background-color: var(--success-subtle);
+  }
+  .bg-warning-subtle {
+    background-color: var(--warning-subtle);
+  }
 }
 
-.counts .stats-item span {
-  font-size: 48px;
-  display: block;
-  color: #74121d;
-  font-weight: 700;
+/* Infinite marquee carousel */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
-.counts .stats-item p {
-  color:
-          color-mix(in srgb, #ffffff, transparent 40%);
-  padding: 0;
-  margin: 0;
-  font-family: var(--heading-font);
-  font-size: 15px;
-  font-weight: 600;
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 28s linear infinite;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+.marquee-wrapper {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
 }
