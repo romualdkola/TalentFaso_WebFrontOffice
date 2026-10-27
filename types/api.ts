@@ -76,13 +76,11 @@ export interface SkillType {
   updatedAt: string;
 }
 
+/** Réponse de GET /public/stats/dashboard (PublicDashboardStatsDto côté backend). */
 export interface DashboardStats {
-  summary?: {
-    totalJobOffers?: number;
-    totalCandidates?: number;
-    partnerCompanies?: number;
-  };
-  general?: {
-    totalApplications?: number;
-  };
+  totalJobOffers?: number;
+  totalCandidates?: number;
+  partnerCompanies?: number;
+  /** Pas encore exposé par l'endpoint public : l'accueil affiche une valeur par défaut. */
+  totalApplications?: number;
 }

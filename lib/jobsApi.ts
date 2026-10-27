@@ -159,11 +159,11 @@ async function fetchPublicJobOfferCount(): Promise<number | null> {
 
 /**
  * Récupère les statistiques globales pour la page d'accueil.
- * Route admin : GET /admin/stats/dashboard (JWT admin requis).
- * Si 403, repli sur le nombre d'offres via /mobile/offers (public).
+ * Route publique : GET /public/stats/dashboard (sans JWT).
+ * Si 401/403, repli sur le nombre d'offres via /mobile/offers (public).
  */
 export async function fetchDashboardStats(): Promise<DashboardStats | null> {
-  const response = await apiRequest("/admin/stats/dashboard", {
+  const response = await apiRequest("/public/stats/dashboard", {
     method: "GET",
   });
 
@@ -174,9 +174,7 @@ export async function fetchDashboardStats(): Promise<DashboardStats | null> {
   if (response.status === 403 || response.status === 401) {
     const totalJobOffers = await fetchPublicJobOfferCount();
     if (totalJobOffers !== null) {
-      return {
-        summary: { totalJobOffers },
-      };
+      return { totalJobOffers };
     }
     return null;
   }

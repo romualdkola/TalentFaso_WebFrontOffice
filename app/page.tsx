@@ -249,7 +249,7 @@ export default function Home() {
               <>
                 <div>
                   <p className="text-3xl font-extrabold text-primary font-heading">
-                    {stats?.summary?.totalJobOffers?.toLocaleString() ?? "100+"}
+                    {stats?.totalJobOffers?.toLocaleString() ?? "100+"}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
                     <Briefcase className="size-4" /> Offres d&apos;emploi
@@ -257,7 +257,7 @@ export default function Home() {
                 </div>
                 <div>
                   <p className="text-3xl font-extrabold text-foreground font-heading">
-                    {stats?.summary?.totalCandidates?.toLocaleString() ?? "1 000+"}
+                    {stats?.totalCandidates?.toLocaleString() ?? "1 000+"}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
                     <Users className="size-4" /> Candidats inscrits
@@ -265,7 +265,7 @@ export default function Home() {
                 </div>
                 <div>
                   <p className="text-3xl font-extrabold text-accent font-heading">
-                    {stats?.summary?.partnerCompanies?.toLocaleString() ?? "50+"}
+                    {stats?.partnerCompanies?.toLocaleString() ?? "50+"}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
                     <Building2 className="size-4" /> Entreprises partenaires
@@ -273,7 +273,7 @@ export default function Home() {
                 </div>
                 <div>
                   <p className="text-3xl font-extrabold text-amber-500 font-heading">
-                    {stats?.general?.totalApplications?.toLocaleString() ?? "500+"}
+                    {stats?.totalApplications?.toLocaleString() ?? "500+"}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
                     <TrendingUp className="size-4" /> Candidatures envoyées
